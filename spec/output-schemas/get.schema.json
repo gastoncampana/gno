@@ -1,0 +1,105 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "gno://schemas/get@1.0",
+  "title": "GNO Get Response",
+  "description": "Response from gno get command",
+  "type": "object",
+  "required": ["docid", "uri", "content", "totalLines", "source"],
+  "properties": {
+    "docid": {
+      "type": "string",
+      "description": "Document ID",
+      "pattern": "^#[a-f0-9]{6,8}$"
+    },
+    "uri": {
+      "type": "string",
+      "description": "Document URI",
+      "pattern": "^gno://[^/]+/.+"
+    },
+    "title": {
+      "type": "string",
+      "description": "Extracted document title"
+    },
+    "content": {
+      "type": "string",
+      "description": "Mirror content (Markdown)"
+    },
+    "totalLines": {
+      "type": "integer",
+      "description": "Total lines in document",
+      "minimum": 0
+    },
+    "returnedLines": {
+      "type": "object",
+      "description": "Line range returned (if partial)",
+      "properties": {
+        "start": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "end": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": ["start", "end"]
+    },
+    "language": {
+      "type": "string",
+      "description": "Document language hint (BCP-47)"
+    },
+    "source": {
+      "type": "object",
+      "description": "Source file metadata",
+      "required": ["relPath", "mime", "ext"],
+      "properties": {
+        "absPath": {
+          "type": "string",
+          "description": "Absolute path to source file"
+        },
+        "relPath": {
+          "type": "string",
+          "description": "Path relative to collection root"
+        },
+        "mime": {
+          "type": "string",
+          "description": "MIME type of source file"
+        },
+        "ext": {
+          "type": "string",
+          "description": "File extension",
+          "pattern": "^\\.[a-zA-Z0-9]+$"
+        },
+        "modifiedAt": {
+          "type": "string",
+          "description": "Last modification time (ISO 8601)",
+          "format": "date-time"
+        },
+        "sizeBytes": {
+          "type": "integer",
+          "description": "File size in bytes",
+          "minimum": 0
+        },
+        "sourceHash": {
+          "type": "string",
+          "description": "SHA-256 hash of source file"
+        }
+      }
+    },
+    "conversion": {
+      "type": "object",
+      "description": "Conversion metadata",
+      "properties": {
+        "converterId": {
+          "type": "string"
+        },
+        "converterVersion": {
+          "type": "string"
+        },
+        "mirrorHash": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

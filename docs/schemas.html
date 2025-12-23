@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Output Schemas - GNO Documentation</title>
+    <meta
+      name="description"
+      content="JSON Schema reference for all GNO CLI and MCP output formats."
+    >
+    <link rel="stylesheet" href="styles.css">
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔮</text></svg>"
+    >
+  </head>
+  <body>
+    <div class="page-bg"></div>
+
+    <!-- Navigation -->
+    <nav class="nav">
+      <div class="nav-inner">
+        <a href="index.html" class="nav-logo">
+          <span class="nav-logo-icon">G</span>
+          <span>GNO</span>
+        </a>
+
+        <button
+          class="nav-toggle"
+          onclick="toggleNav()"
+          aria-label="Toggle navigation"
+        >
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M3 12h18M3 6h18M3 18h18"/>
+          </svg>
+        </button>
+
+        <ul class="nav-links" id="navLinks">
+          <li>
+            <a href="index.html" class="nav-link">Home</a>
+          </li>
+          <li>
+            <a href="cli.html" class="nav-link">CLI Reference</a>
+          </li>
+          <li>
+            <a href="mcp.html" class="nav-link">MCP Tools</a>
+          </li>
+          <li>
+            <a href="schemas.html" class="nav-link active">Schemas</a>
+          </li>
+        </ul>
+
+        <div class="nav-actions">
+          <button
+            class="theme-toggle"
+            onclick="toggleTheme()"
+            aria-label="Toggle theme"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              class="sun-icon"
+            >
+              <circle cx="12" cy="12" r="5"/>
+              <path
+                d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"
+              />
+            </svg>
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              class="moon-icon"
+              style="display:none"
+            >
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          </button>
+          <a
+            href="https://github.com/gmickel/gno"
+            class="github-link"
+            target="_blank"
+            rel="noopener"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"
+              />
+            </svg>
+            <span>GitHub</span>
+          </a>
+        </div>
+      </div>
+    </nav>
+
+    <main>
+      <div class="container">
+        <div class="docs-layout">
+          <!-- Sidebar -->
+          <aside class="docs-sidebar">
+            <nav class="docs-nav-group">
+              <p class="docs-nav-label">Overview</p>
+              <ul class="docs-nav-items">
+                <li class="docs-nav-item">
+                  <a href="#overview" class="docs-nav-link">About Schemas</a>
+                </li>
+              </ul>
+            </nav>
+            <nav class="docs-nav-group">
+              <p class="docs-nav-label">Output Schemas</p>
+              <ul class="docs-nav-items">
+                <li class="docs-nav-item">
+                  <a href="#search-results" class="docs-nav-link"
+                    >SearchResults</a
+                  >
+                </li>
+                <li class="docs-nav-item">
+                  <a href="#search-result" class="docs-nav-link"
+                    >SearchResult</a
+                  >
+                </li>
+                <li class="docs-nav-item">
+                  <a href="#ask" class="docs-nav-link">AskResponse</a>
+                </li>
+                <li class="docs-nav-item">
+                  <a href="#get" class="docs-nav-link">GetResponse</a>
+                </li>
+                <li class="docs-nav-item">
+                  <a href="#multi-get" class="docs-nav-link"
+                    >MultiGetResponse</a
+                  >
+                </li>
+                <li class="docs-nav-item">
+                  <a href="#status" class="docs-nav-link">StatusResponse</a>
+                </li>
+                <li class="docs-nav-item">
+                  <a href="#error" class="docs-nav-link">ErrorResponse</a>
+                </li>
+              </ul>
+            </nav>
+          </aside>
+
+          <!-- Content -->
+          <div class="docs-content">
+            <h1>Output Schemas</h1>
+            <p>
+              JSON Schema definitions for all GNO output formats. Use these to
+              validate and parse GNO responses.
+            </p>
+
+            <!-- Overview -->
+            <section id="overview">
+              <h2>About Schemas</h2>
+              <p>
+                GNO uses
+                <a
+                  href="https://json-schema.org/draft-07"
+                  target="_blank"
+                  rel="noopener"
+                  >JSON Schema Draft-07</a
+                >to define all output formats. Schemas are available in the
+                repository at <code>spec/output-schemas/</code>.
+              </p>
+
+              <div class="callout callout-info">
+                <span class="callout-icon">ℹ️</span>
+                <div>
+                  <p>
+                    All schemas use the <code>gno://schemas/</code>namespace
+                    with version suffixes (e.g.,
+                    <code>gno://schemas/search-results@1.0</code>).
+                  </p>
+                </div>
+              </div>
+
+              <h3>Validation</h3>
+              <p>
+                Use any JSON Schema validator (like Ajv) to validate GNO output:
+              </p>
+
+              <div class="code-window">
+                <div class="code-header">
+                  <div class="code-dots">
+                    <span class="code-dot"></span>
+                    <span class="code-dot"></span>
+                    <span class="code-dot"></span>
+                  </div>
+                  <span class="code-title">validation.ts</span>
+                  <button class="code-copy" onclick="copyCode(this)">
+                    Copy
+                  </button>
+                </div>
+                <div class="code-content">
+                  <pre
+                  ><code><span class="token-keyword">import</span> Ajv <span class="token-keyword">from</span> <span class="token-string">'ajv'</span>;
+<span class="token-keyword">import</span> schema <span class="token-keyword">from</span> <span class="token-string">'./spec/output-schemas/search-results.schema.json'</span>;
+
+<span class="token-keyword">const</span> ajv = <span class="token-keyword">new</span> <span class="token-function">Ajv</span>();
+<span class="token-keyword">const</span> validate = ajv.<span class="token-function">compile</span>(schema);
+
+<span class="token-keyword">const</span> output = JSON.<span class="token-function">parse</span>(gnoOutput);
+<span class="token-keyword">if</span> (<span class="token-function">validate</span>(output)) {
+  <span class="token-comment">// Valid SearchResults</span>
+} <span class="token-keyword">else</span> {
+  console.<span class="token-function">error</span>(validate.errors);
+}</code></pre>
+                </div>
+              </div>
+            </section>
+
+            <!-- SearchResults -->
+            <section id="search-results">
+              <h2>SearchResults</h2>
+              <p>
+                Response from <code>gno search</code>command with multiple
+                results.
+              </p>
+
+              <div class="schema-block">
+                <div class="schema-header">
+                  <span class="schema-name">SearchResults</span>
+                  <span class="schema-id"
+                    >gno://schemas/search-results@1.0</span
+                  >
+                </div>
+                <div class="schema-content">
+                  <ul class="prop-list">
+                    <li class="prop-item">
+                      <span class="prop-name">results</span>
+                      <span class="prop-type">array&lt;SearchResult&gt;</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">Array of search result items</p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">meta</span>
+                      <span class="prop-type">object</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">Search metadata</p>
+                    </li>
+                  </ul>
+
+                  <h4>meta Properties</h4>
+                  <ul class="prop-list">
+                    <li class="prop-item">
+                      <span class="prop-name">query</span>
+                      <span class="prop-type">string</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">Original search query</p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">mode</span>
+                      <span class="prop-type">enum</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">
+                        Search mode: <code>bm25</code>, <code>vector</code>,
+                        <code>hybrid</code>, or <code>bm25_only</code>
+                      </p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">totalResults</span>
+                      <span class="prop-type">integer</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">Total number of results returned</p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">expanded</span>
+                      <span class="prop-type">boolean</span>
+                      <p class="prop-desc">Whether query expansion was used</p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">reranked</span>
+                      <span class="prop-type">boolean</span>
+                      <p class="prop-desc">Whether reranking was applied</p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">vectorsUsed</span>
+                      <span class="prop-type">boolean</span>
+                      <p class="prop-desc">Whether vector search was used</p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">collection</span>
+                      <span class="prop-type">string</span>
+                      <p class="prop-desc">Collection filter if applied</p>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <h3>Example</h3>
+              <div class="code-window">
+                <div class="code-content">
+                  <pre><code>{
+  <span class="token-string">"results"</span>: [
+    {
+      <span class="token-string">"docid"</span>: <span class="token-string">"#a1b2c3d"</span>,
+      <span class="token-string">"score"</span>: <span class="token-number">0.89</span>,
+      <span class="token-string">"uri"</span>: <span class="token-string">"gno://notes/auth/login.md"</span>,
+      <span class="token-string">"snippet"</span>: <span class="token-string">"User authentication uses JWT..."</span>,
+      <span class="token-string">"source"</span>: {
+        <span class="token-string">"relPath"</span>: <span class="token-string">"auth/login.md"</span>,
+        <span class="token-string">"mime"</span>: <span class="token-string">"text/markdown"</span>,
+        <span class="token-string">"ext"</span>: <span class="token-string">".md"</span>
+      }
+    }
+  ],
+  <span class="token-string">"meta"</span>: {
+    <span class="token-string">"query"</span>: <span class="token-string">"authentication"</span>,
+    <span class="token-string">"mode"</span>: <span class="token-string">"hybrid"</span>,
+    <span class="token-string">"totalResults"</span>: <span class="token-number">1</span>,
+    <span class="token-string">"reranked"</span>: <span class="token-keyword">true</span>,
+    <span class="token-string">"vectorsUsed"</span>: <span class="token-keyword">true</span>
+  }
+}</code></pre>
+                </div>
+              </div>
+            </section>
+
+            <!-- SearchResult -->
+            <section id="search-result">
+              <h2>SearchResult</h2>
+              <p>Individual search result item.</p>
+
+              <div class="schema-block">
+                <div class="schema-header">
+                  <span class="schema-name">SearchResult</span>
+                  <span class="schema-id">gno://schemas/search-result@1.0</span>
+                </div>
+                <div class="schema-content">
+                  <ul class="prop-list">
+                    <li class="prop-item">
+                      <span class="prop-name">docid</span>
+                      <span class="prop-type">string</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">
+                        Document ID (short hash, pattern:
+                        <code>#[a-f0-9] { 6,8}</code>)
+                      </p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">score</span>
+                      <span class="prop-type">number</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">Relevance score (0-1 normalized)</p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">uri</span>
+                      <span class="prop-type">string</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">
+                        Document URI (pattern:
+                        <code>gno://[collection]/[path]</code>)
+                      </p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">snippet</span>
+                      <span class="prop-type">string</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">
+                        Matching text snippet from document
+                      </p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">source</span>
+                      <span class="prop-type">object</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">Source file metadata</p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">title</span>
+                      <span class="prop-type">string</span>
+                      <p class="prop-desc">Extracted document title</p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">snippetRange</span>
+                      <span class="prop-type">object</span>
+                      <p class="prop-desc">
+                        Line range of snippet (<code>startLine</code>,
+                        <code>endLine</code>)
+                      </p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">context</span>
+                      <span class="prop-type">string</span>
+                      <p class="prop-desc">Context metadata from collection</p>
+                    </li>
+                  </ul>
+
+                  <h4>source Properties</h4>
+                  <ul class="prop-list">
+                    <li class="prop-item">
+                      <span class="prop-name">relPath</span>
+                      <span class="prop-type">string</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">Path relative to collection root</p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">mime</span>
+                      <span class="prop-type">string</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">MIME type of source file</p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">ext</span>
+                      <span class="prop-type">string</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">File extension (including dot)</p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">absPath</span>
+                      <span class="prop-type">string</span>
+                      <p class="prop-desc">
+                        Absolute path (with <code>--source</code>flag)
+                      </p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">modifiedAt</span>
+                      <span class="prop-type">string</span>
+                      <p class="prop-desc">Last modification time (ISO 8601)</p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">sizeBytes</span>
+                      <span class="prop-type">integer</span>
+                      <p class="prop-desc">File size in bytes</p>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </section>
+
+            <!-- AskResponse -->
+            <section id="ask">
+              <h2>AskResponse</h2>
+              <p>
+                Response from <code>gno ask</code>command.
+              </p>
+
+              <div class="schema-block">
+                <div class="schema-header">
+                  <span class="schema-name">AskResponse</span>
+                  <span class="schema-id">gno://schemas/ask@1.0</span>
+                </div>
+                <div class="schema-content">
+                  <ul class="prop-list">
+                    <li class="prop-item">
+                      <span class="prop-name">query</span>
+                      <span class="prop-type">string</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">Original query</p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">mode</span>
+                      <span class="prop-type">enum</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">
+                        Retrieval mode: <code>hybrid</code>or
+                        <code>bm25_only</code>
+                      </p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">results</span>
+                      <span class="prop-type">array&lt;SearchResult&gt;</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">Search results used for context</p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">meta</span>
+                      <span class="prop-type">object</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">Retrieval metadata</p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">answer</span>
+                      <span class="prop-type">string</span>
+                      <p class="prop-desc">
+                        Grounded answer (with <code>--answer</code>flag)
+                      </p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">citations</span>
+                      <span class="prop-type">array</span>
+                      <p class="prop-desc">Citations for the answer</p>
+                    </li>
+                  </ul>
+
+                  <h4>citations Item Properties</h4>
+                  <ul class="prop-list">
+                    <li class="prop-item">
+                      <span class="prop-name">docid</span>
+                      <span class="prop-type">string</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">Document ID</p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">uri</span>
+                      <span class="prop-type">string</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">Document URI</p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">startLine</span>
+                      <span class="prop-type">integer</span>
+                      <p class="prop-desc">Citation start line</p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">endLine</span>
+                      <span class="prop-type">integer</span>
+                      <p class="prop-desc">Citation end line</p>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <h3>Example</h3>
+              <div class="code-window">
+                <div class="code-content">
+                  <pre><code>{
+  <span class="token-string">"query"</span>: <span class="token-string">"How does authentication work?"</span>,
+  <span class="token-string">"mode"</span>: <span class="token-string">"hybrid"</span>,
+  <span class="token-string">"answer"</span>: <span class="token-string">"Authentication uses JWT tokens stored..."</span>,
+  <span class="token-string">"citations"</span>: [
+    {
+      <span class="token-string">"docid"</span>: <span class="token-string">"#a1b2c3d"</span>,
+      <span class="token-string">"uri"</span>: <span class="token-string">"gno://notes/auth/overview.md"</span>,
+      <span class="token-string">"startLine"</span>: <span class="token-number">15</span>,
+      <span class="token-string">"endLine"</span>: <span class="token-number">28</span>
+    }
+  ],
+  <span class="token-string">"results"</span>: [...],
+  <span class="token-string">"meta"</span>: {
+    <span class="token-string">"expanded"</span>: <span class="token-keyword">false</span>,
+    <span class="token-string">"reranked"</span>: <span class="token-keyword">true</span>,
+    <span class="token-string">"vectorsUsed"</span>: <span class="token-keyword">true</span>,
+    <span class="token-string">"answerGenerated"</span>: <span class="token-keyword">true</span>
+  }
+}</code></pre>
+                </div>
+              </div>
+            </section>
+
+            <!-- GetResponse -->
+            <section id="get">
+              <h2>GetResponse</h2>
+              <p>
+                Response from <code>gno get</code>command.
+              </p>
+
+              <div class="schema-block">
+                <div class="schema-header">
+                  <span class="schema-name">GetResponse</span>
+                  <span class="schema-id">gno://schemas/get@1.0</span>
+                </div>
+                <div class="schema-content">
+                  <ul class="prop-list">
+                    <li class="prop-item">
+                      <span class="prop-name">uri</span>
+                      <span class="prop-type">string</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">Document URI</p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">docid</span>
+                      <span class="prop-type">string</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">Document ID</p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">content</span>
+                      <span class="prop-type">string</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">Document content (mirror text)</p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">source</span>
+                      <span class="prop-type">object</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">
+                        Source file metadata (same as SearchResult.source)
+                      </p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">range</span>
+                      <span class="prop-type">object</span>
+                      <p class="prop-desc">
+                        Line range if <code>--lines</code>was used
+                      </p>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </section>
+
+            <!-- MultiGetResponse -->
+            <section id="multi-get">
+              <h2>MultiGetResponse</h2>
+              <p>Response when retrieving multiple documents.</p>
+
+              <div class="schema-block">
+                <div class="schema-header">
+                  <span class="schema-name">MultiGetResponse</span>
+                  <span class="schema-id">gno://schemas/multi-get@1.0</span>
+                </div>
+                <div class="schema-content">
+                  <ul class="prop-list">
+                    <li class="prop-item">
+                      <span class="prop-name">documents</span>
+                      <span class="prop-type">array&lt;GetResponse&gt;</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">Array of retrieved documents</p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">errors</span>
+                      <span class="prop-type">array</span>
+                      <p class="prop-desc">
+                        Any retrieval errors (URI + error message)
+                      </p>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </section>
+
+            <!-- StatusResponse -->
+            <section id="status">
+              <h2>StatusResponse</h2>
+              <p>
+                Response from <code>gno status</code>command.
+              </p>
+
+              <div class="schema-block">
+                <div class="schema-header">
+                  <span class="schema-name">StatusResponse</span>
+                  <span class="schema-id">gno://schemas/status@1.0</span>
+                </div>
+                <div class="schema-content">
+                  <ul class="prop-list">
+                    <li class="prop-item">
+                      <span class="prop-name">version</span>
+                      <span class="prop-type">string</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">GNO version</p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">collections</span>
+                      <span class="prop-type">array</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">
+                        Array of collection status objects
+                      </p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">totalDocuments</span>
+                      <span class="prop-type">integer</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">
+                        Total documents across all collections
+                      </p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">totalSizeBytes</span>
+                      <span class="prop-type">integer</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">Total storage size in bytes</p>
+                    </li>
+                  </ul>
+
+                  <h4>collections Item Properties</h4>
+                  <ul class="prop-list">
+                    <li class="prop-item">
+                      <span class="prop-name">name</span>
+                      <span class="prop-type">string</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">Collection name</p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">documentCount</span>
+                      <span class="prop-type">integer</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">Number of documents</p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">sizeBytes</span>
+                      <span class="prop-type">integer</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">Collection size in bytes</p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">lastIndexed</span>
+                      <span class="prop-type">string</span>
+                      <p class="prop-desc">Last indexing time (ISO 8601)</p>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <h3>Example</h3>
+              <div class="code-window">
+                <div class="code-content">
+                  <pre><code>{
+  <span class="token-string">"version"</span>: <span class="token-string">"0.1.0"</span>,
+  <span class="token-string">"totalDocuments"</span>: <span class="token-number">1247</span>,
+  <span class="token-string">"totalSizeBytes"</span>: <span class="token-number">25690112</span>,
+  <span class="token-string">"collections"</span>: [
+    {
+      <span class="token-string">"name"</span>: <span class="token-string">"notes"</span>,
+      <span class="token-string">"documentCount"</span>: <span class="token-number">523</span>,
+      <span class="token-string">"sizeBytes"</span>: <span class="token-number">12902400</span>,
+      <span class="token-string">"lastIndexed"</span>: <span class="token-string">"2024-01-15T10:30:00Z"</span>
+    },
+    {
+      <span class="token-string">"name"</span>: <span class="token-string">"code"</span>,
+      <span class="token-string">"documentCount"</span>: <span class="token-number">724</span>,
+      <span class="token-string">"sizeBytes"</span>: <span class="token-number">12787712</span>,
+      <span class="token-string">"lastIndexed"</span>: <span class="token-string">"2024-01-15T09:15:00Z"</span>
+    }
+  ]
+}</code></pre>
+                </div>
+              </div>
+            </section>
+
+            <!-- ErrorResponse -->
+            <section id="error">
+              <h2>ErrorResponse</h2>
+              <p>Standard error response format.</p>
+
+              <div class="schema-block">
+                <div class="schema-header">
+                  <span class="schema-name">ErrorResponse</span>
+                  <span class="schema-id">gno://schemas/error@1.0</span>
+                </div>
+                <div class="schema-content">
+                  <ul class="prop-list">
+                    <li class="prop-item">
+                      <span class="prop-name">error</span>
+                      <span class="prop-type">object</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">Error details</p>
+                    </li>
+                  </ul>
+
+                  <h4>error Properties</h4>
+                  <ul class="prop-list">
+                    <li class="prop-item">
+                      <span class="prop-name">code</span>
+                      <span class="prop-type">string</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">
+                        Error code (e.g., <code>NOT_FOUND</code>,
+                        <code>INVALID_QUERY</code>)
+                      </p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">message</span>
+                      <span class="prop-type">string</span>
+                      <span class="prop-required">required</span>
+                      <p class="prop-desc">Human-readable error message</p>
+                    </li>
+                    <li class="prop-item">
+                      <span class="prop-name">details</span>
+                      <span class="prop-type">object</span>
+                      <p class="prop-desc">Additional error context</p>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <h3>Example</h3>
+              <div class="code-window">
+                <div class="code-content">
+                  <pre><code>{
+  <span class="token-string">"error"</span>: {
+    <span class="token-string">"code"</span>: <span class="token-string">"NOT_FOUND"</span>,
+    <span class="token-string">"message"</span>: <span class="token-string">"Document not found: #xyz123"</span>,
+    <span class="token-string">"details"</span>: {
+      <span class="token-string">"docid"</span>: <span class="token-string">"#xyz123"</span>
+    }
+  }
+}</code></pre>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-inner">
+          <div class="footer-brand">
+            <span class="nav-logo-icon">G</span>
+            <span>GNO</span>
+          </div>
+          <div class="footer-links">
+            <a href="cli.html" class="footer-link">CLI Reference</a>
+            <a href="mcp.html" class="footer-link">MCP Tools</a>
+            <a href="schemas.html" class="footer-link">Schemas</a>
+            <a
+              href="https://github.com/gmickel/gno"
+              class="footer-link"
+              target="_blank"
+              rel="noopener"
+              >GitHub</a
+            >
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+    'use strict';
+    // Theme toggle
+    window.toggleTheme = () => {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+      updateThemeIcons(next);
+    };
+
+    function updateThemeIcons(theme) {
+      const sunIcon = document.querySelector('.sun-icon');
+      const moonIcon = document.querySelector('.moon-icon');
+      if (theme === 'dark') {
+        sunIcon.style.display = 'block';
+        moonIcon.style.display = 'none';
+      } else {
+        sunIcon.style.display = 'none';
+        moonIcon.style.display = 'block';
+      }
+    }
+
+    // Load saved theme
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    updateThemeIcons(savedTheme);
+
+    // Mobile nav toggle
+    window.toggleNav = () => {
+      document.getElementById('navLinks').classList.toggle('open');
+    };
+
+    // Copy code
+    window.copyCode = (btn) => {
+      const code = btn
+        .closest('.code-window')
+        .querySelector('code').textContent;
+      navigator.clipboard.writeText(code);
+      btn.textContent = 'Copied!';
+      setTimeout(() => {
+        btn.textContent = 'Copy';
+      }, 2000);
+    };
+
+    // Highlight active sidebar link on scroll
+    const sections = document.querySelectorAll('section[id]');
+    const navLinks = document.querySelectorAll('.docs-nav-link');
+
+    window.addEventListener('scroll', () => {
+      let current = '';
+      for (const section of sections) {
+        const sectionTop = section.offsetTop - 120;
+        if (scrollY >= sectionTop) {
+          current = section.getAttribute('id');
+        }
+      }
+
+      for (const link of navLinks) {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === `#${current}`) {
+          link.classList.add('active');
+        }
+      }
+    });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,194 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "gno://schemas/search-results@1.0",
+  "title": "GNO Search Results",
+  "description": "Array of search results with metadata",
+  "type": "object",
+  "required": ["results", "meta"],
+  "$defs": {
+    "searchResult": {
+      "type": "object",
+      "required": ["docid", "score", "uri", "snippet", "source"],
+      "properties": {
+        "docid": {
+          "type": "string",
+          "description": "Document ID (short hash of source)",
+          "pattern": "^#[a-f0-9]{6,8}$"
+        },
+        "score": {
+          "type": "number",
+          "description": "Relevance score (0-1 normalized)",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "uri": {
+          "type": "string",
+          "description": "Document URI (gno://collection/path)",
+          "pattern": "^gno://[^/]+/.+"
+        },
+        "title": {
+          "type": "string",
+          "description": "Extracted document title (optional)"
+        },
+        "snippetLanguage": {
+          "type": "string",
+          "description": "Language of snippet content (BCP-47 or 'und')"
+        },
+        "context": {
+          "type": "string",
+          "description": "Context metadata from folder/collection"
+        },
+        "snippet": {
+          "type": "string",
+          "description": "Matching text snippet from document mirror"
+        },
+        "snippetRange": {
+          "type": "object",
+          "description": "Line range of snippet in mirror content",
+          "properties": {
+            "startLine": {
+              "type": "integer",
+              "description": "Start line (1-indexed)",
+              "minimum": 1
+            },
+            "endLine": {
+              "type": "integer",
+              "description": "End line (1-indexed, inclusive)",
+              "minimum": 1
+            }
+          },
+          "required": ["startLine", "endLine"]
+        },
+        "source": {
+          "type": "object",
+          "description": "Source file metadata",
+          "required": ["relPath", "mime", "ext"],
+          "properties": {
+            "absPath": {
+              "type": "string",
+              "description": "Absolute path (included with --source or in MCP)"
+            },
+            "relPath": {
+              "type": "string",
+              "description": "Path relative to collection root"
+            },
+            "mime": {
+              "type": "string",
+              "description": "MIME type of source file"
+            },
+            "ext": {
+              "type": "string",
+              "description": "File extension (including dot)",
+              "pattern": "^\\.[a-zA-Z0-9]+$"
+            },
+            "modifiedAt": {
+              "type": "string",
+              "description": "Last modification time (ISO 8601)",
+              "format": "date-time"
+            },
+            "sizeBytes": {
+              "type": "integer",
+              "description": "File size in bytes",
+              "minimum": 0
+            },
+            "sourceHash": {
+              "type": "string",
+              "description": "SHA-256 hash of source file"
+            }
+          }
+        },
+        "conversion": {
+          "type": "object",
+          "description": "Conversion metadata",
+          "properties": {
+            "converterId": {
+              "type": "string",
+              "description": "Converter identifier (e.g., 'adapter/markitdown-js')"
+            },
+            "converterVersion": {
+              "type": "string",
+              "description": "Converter version"
+            },
+            "mirrorHash": {
+              "type": "string",
+              "description": "SHA-256 hash of mirror content"
+            },
+            "warnings": {
+              "type": "array",
+              "description": "Conversion warnings",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "enum": [
+                      "LOSSY",
+                      "TRUNCATED",
+                      "PARTIAL",
+                      "UNSUPPORTED_FEATURE",
+                      "LOW_CONFIDENCE"
+                    ]
+                  },
+                  "message": {
+                    "type": "string"
+                  }
+                },
+                "required": ["code", "message"]
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "properties": {
+    "results": {
+      "type": "array",
+      "description": "Array of search result items",
+      "items": {
+        "$ref": "#/$defs/searchResult"
+      }
+    },
+    "meta": {
+      "type": "object",
+      "description": "Search metadata",
+      "required": ["query", "mode", "totalResults"],
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "Original search query"
+        },
+        "mode": {
+          "type": "string",
+          "description": "Search mode used",
+          "enum": ["bm25", "vector", "hybrid", "bm25_only"]
+        },
+        "expanded": {
+          "type": "boolean",
+          "description": "Whether query expansion was used"
+        },
+        "reranked": {
+          "type": "boolean",
+          "description": "Whether reranking was applied"
+        },
+        "vectorsUsed": {
+          "type": "boolean",
+          "description": "Whether vector search was used"
+        },
+        "totalResults": {
+          "type": "integer",
+          "description": "Total number of results returned",
+          "minimum": 0
+        },
+        "collection": {
+          "type": "string",
+          "description": "Collection filter if applied"
+        },
+        "lang": {
+          "type": "string",
+          "description": "Language filter/hint if applied"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "error": {
+    "code": "VALIDATION",
+    "message": "Missing required argument: query",
+    "details": {
+      "argument": "query",
+      "command": "search"
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "docid": "#abc123",
+  "score": 0.5,
+  "uri": "gno://notes/doc.md",
+  "snippet": "Sample content here",
+  "source": {
+    "relPath": "doc.md",
+    "mime": "text/markdown",
+    "ext": ".md"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "indexName": "default",
+  "configPath": "/Users/user/Library/Application Support/gno/config/index.yml",
+  "dbPath": "/Users/user/Library/Application Support/gno/data/index-default.sqlite",
+  "collections": [
+    {
+      "name": "work",
+      "path": "/Users/user/work/docs",
+      "documentCount": 100,
+      "chunkCount": 500,
+      "embeddedCount": 500
+    },
+    {
+      "name": "notes",
+      "path": "/Users/user/notes",
+      "documentCount": 50,
+      "chunkCount": 300,
+      "embeddedCount": 300
+    }
+  ],
+  "totalDocuments": 150,
+  "totalChunks": 800,
+  "embeddingBacklog": 0,
+  "lastUpdated": "2025-12-23T10:00:00Z",
+  "healthy": true
+}

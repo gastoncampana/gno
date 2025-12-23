@@ -1,0 +1,92 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "gno://schemas/status@1.0",
+  "title": "GNO Status",
+  "description": "Index status and health information",
+  "type": "object",
+  "required": [
+    "indexName",
+    "collections",
+    "totalDocuments",
+    "totalChunks",
+    "embeddingBacklog",
+    "healthy"
+  ],
+  "properties": {
+    "indexName": {
+      "type": "string",
+      "description": "Name of the index"
+    },
+    "configPath": {
+      "type": "string",
+      "description": "Path to config file"
+    },
+    "dbPath": {
+      "type": "string",
+      "description": "Path to SQLite database"
+    },
+    "collections": {
+      "type": "array",
+      "description": "Collection statistics",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "path",
+          "documentCount",
+          "chunkCount",
+          "embeddedCount"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Collection name"
+          },
+          "path": {
+            "type": "string",
+            "description": "Collection root path"
+          },
+          "documentCount": {
+            "type": "integer",
+            "description": "Number of active documents",
+            "minimum": 0
+          },
+          "chunkCount": {
+            "type": "integer",
+            "description": "Number of content chunks",
+            "minimum": 0
+          },
+          "embeddedCount": {
+            "type": "integer",
+            "description": "Number of chunks with embeddings",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "totalDocuments": {
+      "type": "integer",
+      "description": "Total documents across all collections",
+      "minimum": 0
+    },
+    "totalChunks": {
+      "type": "integer",
+      "description": "Total chunks across all collections",
+      "minimum": 0
+    },
+    "embeddingBacklog": {
+      "type": "integer",
+      "description": "Chunks awaiting embedding",
+      "minimum": 0
+    },
+    "lastUpdated": {
+      "type": "string",
+      "description": "Last index update time (ISO 8601)",
+      "format": "date-time"
+    },
+    "healthy": {
+      "type": "boolean",
+      "description": "Overall health status"
+    }
+  }
+}

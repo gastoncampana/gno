@@ -31,6 +31,38 @@ test("hello world", () => {
 });
 ```
 
+## Specifications
+
+**IMPORTANT**: Before implementing CLI commands, MCP tools, or output formats, consult the specs:
+
+- `spec/cli.md` - CLI commands, flags, exit codes, output formats
+- `spec/mcp.md` - MCP tools, resources, schemas, versioning
+- `spec/output-schemas/*.json` - JSON schemas for all structured outputs
+- `spec/db/schema.sql` - Database schema (when implemented)
+- `docs/prd.md` - Full product requirements (§14-16 for interface contracts)
+
+Contract tests in `test/spec/schemas/` validate outputs against schemas. Run `bun test` to verify compliance.
+
+When adding new commands or modifying outputs:
+1. Update the relevant spec first
+2. Add/update JSON schema if output shape changes
+3. Add contract tests for the schema
+4. Implement the feature
+5. Verify tests pass
+
+### Avoiding Documentation Drift
+
+**CRITICAL**: After completing any task, verify documentation is current:
+
+- [ ] README.md - Does it reflect current capabilities?
+- [ ] CLAUDE.md / AGENTS.md - Are instructions still accurate?
+- [ ] spec/*.md - Do specs match implementation?
+- [ ] spec/output-schemas/*.json - Do schemas match actual outputs?
+- [ ] docs/prd.md - Mark completed items with ✓
+- [ ] Beads - Are descriptions and comments up to date?
+
+If you change behavior, update docs in the same commit. Never leave docs out of sync.
+
 ## Frontend
 
 Use HTML imports with `Bun.serve()`. Don't use `vite`. HTML imports fully support React, CSS, Tailwind.
