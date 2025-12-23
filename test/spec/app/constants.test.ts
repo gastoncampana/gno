@@ -233,20 +233,20 @@ describe('docid utilities', () => {
     expect(DOCID_PREFIX).toBe('#');
   });
 
-  test('DOCID_LENGTH is 6', () => {
-    expect(DOCID_LENGTH).toBe(6);
+  test('DOCID_LENGTH is 8', () => {
+    expect(DOCID_LENGTH).toBe(8);
   });
 
   describe('deriveDocid', () => {
     test('derives docid from hash', () => {
       const hash = 'a1b2c3d4e5f6';
-      expect(deriveDocid(hash)).toBe('#a1b2c3');
+      expect(deriveDocid(hash)).toBe('#a1b2c3d4');
     });
 
     test('handles long hashes', () => {
       const hash =
         'abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789';
-      expect(deriveDocid(hash)).toBe('#abcdef');
+      expect(deriveDocid(hash)).toBe('#abcdef01');
     });
   });
 

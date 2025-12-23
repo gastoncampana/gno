@@ -272,15 +272,15 @@ export function parseUri(
 /** docid prefix */
 export const DOCID_PREFIX = '#';
 
-/** docid hex length (6-8 chars) */
-export const DOCID_LENGTH = 6;
+/** docid hex length (8 chars = 32 bits, ~4B unique values) */
+export const DOCID_LENGTH = 8;
 
 /** Regex for validating hex characters in docid */
 const DOCID_HEX_REGEX = /^[0-9a-f]+$/i;
 
 /**
  * Derive a docid from a source hash.
- * Format: #<6 hex chars>
+ * Format: #<8 hex chars>
  */
 export function deriveDocid(sourceHash: string): string {
   return `${DOCID_PREFIX}${sourceHash.slice(0, DOCID_LENGTH)}`;

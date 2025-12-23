@@ -80,7 +80,11 @@ export async function saveConfigToPath(
   }
 
   // Write to temp file first (atomic write pattern)
-  const tempPath = join(dir, `.index.yml.${Date.now()}.tmp`);
+  // Use timestamp + random suffix to avoid collision
+  const tempPath = join(
+    dir,
+    `.index.yml.${Date.now()}.${Math.random().toString(36).slice(2, 8)}.tmp`
+  );
 
   try {
     await Bun.write(tempPath, yamlContent);
@@ -95,8 +99,10 @@ export async function saveConfigToPath(
     };
   }
 
-  // Rename temp to target (atomic on POSIX)
+  // Rename temp to target (atomic on POSIX, needs unlink on Windows)
   try {
+    // Windows: rename fails if dest exists, so unlink first
+    await unlink(filePath).catch(() => {});
     await rename(tempPath, filePath);
   } catch (cause) {
     // Clean up temp file on rename failure

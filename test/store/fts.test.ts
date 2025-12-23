@@ -74,8 +74,8 @@ describe('FTS search', () => {
     }
 
     expect(result.value).toHaveLength(1);
-    // docid is first 6 chars of sourceHash which is "hash_hellomd"
-    expect(result.value[0]?.docid).toBe('#hash_h');
+    // docid is first 8 chars of sourceHash which is "hash_hellomd"
+    expect(result.value[0]?.docid).toBe('#hash_hel');
   });
 
   test('returns multiple matches ranked by score', async () => {

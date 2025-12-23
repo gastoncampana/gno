@@ -239,8 +239,8 @@ describe('SqliteAdapter', () => {
         return;
       }
 
-      // docid is derived from sourceHash
-      expect(upsertResult.value).toBe('#abc123');
+      // docid is derived from sourceHash (8 hex chars)
+      expect(upsertResult.value).toBe('#abc123de');
 
       const getResult = await adapter.getDocument('notes', 'readme.md');
       expect(getResult.ok).toBe(true);
@@ -249,7 +249,7 @@ describe('SqliteAdapter', () => {
       }
 
       expect(getResult.value).not.toBeNull();
-      expect(getResult.value?.docid).toBe('#abc123');
+      expect(getResult.value?.docid).toBe('#abc123de');
       expect(getResult.value?.uri).toBe('gno://notes/readme.md');
       expect(getResult.value?.title).toBe('README');
       expect(getResult.value?.active).toBe(true);

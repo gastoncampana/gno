@@ -279,13 +279,19 @@ async function addCollectionToConfig(
     };
   }
 
-  // Parse include/exclude CSV if provided
+  // Parse include/exclude CSV if provided (filter empty entries)
   const include = options.include
-    ? options.include.split(',').map((ext) => ext.trim())
+    ? options.include
+        .split(',')
+        .map((ext) => ext.trim())
+        .filter(Boolean)
     : [];
 
   const exclude = options.exclude
-    ? options.exclude.split(',').map((pattern) => pattern.trim())
+    ? options.exclude
+        .split(',')
+        .map((pattern) => pattern.trim())
+        .filter(Boolean)
     : [...DEFAULT_EXCLUDES];
 
   // Create collection

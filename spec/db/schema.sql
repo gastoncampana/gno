@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS documents (
   source_mtime TEXT NOT NULL,
 
   -- Derived identifiers
-  docid TEXT NOT NULL,              -- #<6-8 hex> from source_hash
+  docid TEXT NOT NULL,              -- #<8 hex> from source_hash
   uri TEXT NOT NULL,                -- gno://collection/rel_path
 
   -- Conversion output
@@ -95,7 +95,9 @@ CREATE TABLE IF NOT EXISTS documents (
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
 
   UNIQUE (collection, rel_path),
-  FOREIGN KEY (collection) REFERENCES collections(name)
+  FOREIGN KEY (collection) REFERENCES collections(name) ON DELETE CASCADE
+  -- Note: mirror_hash is NOT an FK - documents are tracked before content exists
+  -- Cleanup via cleanupOrphans() handles orphaned content
 );
 
 CREATE INDEX IF NOT EXISTS idx_documents_collection ON documents(collection);

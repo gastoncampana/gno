@@ -71,7 +71,9 @@ export const migration: Migration = {
         updated_at TEXT NOT NULL DEFAULT (datetime('now')),
 
         UNIQUE (collection, rel_path),
-        FOREIGN KEY (collection) REFERENCES collections(name)
+        FOREIGN KEY (collection) REFERENCES collections(name) ON DELETE CASCADE
+        -- Note: mirror_hash is NOT an FK - documents are tracked before content exists
+        -- Cleanup via cleanupOrphans() handles orphaned content
       )
     `);
 
