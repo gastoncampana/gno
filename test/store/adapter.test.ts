@@ -1,0 +1,600 @@
+/**
+ * Integration tests for SQLite adapter.
+ */
+
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import type { Collection, Context } from '../../src/config/types';
+import { SqliteAdapter } from '../../src/store';
+import type { ChunkInput, DocumentInput } from '../../src/store/types';
+
+describe('SqliteAdapter', () => {
+  let adapter: SqliteAdapter;
+  let testDir: string;
+  let dbPath: string;
+
+  beforeEach(async () => {
+    testDir = await mkdtemp(join(tmpdir(), 'gno-store-test-'));
+    dbPath = join(testDir, 'test.sqlite');
+    adapter = new SqliteAdapter();
+  });
+
+  afterEach(async () => {
+    await adapter.close();
+    await rm(testDir, { recursive: true, force: true });
+  });
+
+  describe('lifecycle', () => {
+    test('opens and closes database', async () => {
+      expect(adapter.isOpen()).toBe(false);
+
+      const result = await adapter.open(dbPath, 'unicode61');
+      expect(result.ok).toBe(true);
+      expect(adapter.isOpen()).toBe(true);
+
+      await adapter.close();
+      expect(adapter.isOpen()).toBe(false);
+    });
+
+    test('runs initial migrations on fresh database', async () => {
+      const result = await adapter.open(dbPath, 'unicode61');
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+
+      expect(result.value.applied).toContain(1);
+      expect(result.value.currentVersion).toBe(1);
+      expect(result.value.ftsTokenizer).toBe('unicode61');
+    });
+
+    test('skips migrations on reopened database', async () => {
+      // First open
+      let result = await adapter.open(dbPath, 'unicode61');
+      expect(result.ok).toBe(true);
+      await adapter.close();
+
+      // Second open
+      result = await adapter.open(dbPath, 'unicode61');
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+
+      expect(result.value.applied).toHaveLength(0);
+      expect(result.value.currentVersion).toBe(1);
+    });
+
+    test('rejects tokenizer mismatch', async () => {
+      // First open with unicode61
+      let result = await adapter.open(dbPath, 'unicode61');
+      expect(result.ok).toBe(true);
+      await adapter.close();
+
+      // Second open with porter - should fail
+      adapter = new SqliteAdapter();
+      result = await adapter.open(dbPath, 'porter');
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+
+      expect(result.error.code).toBe('MIGRATION_FAILED');
+      expect(result.error.message).toContain('tokenizer mismatch');
+    });
+  });
+
+  describe('collections sync', () => {
+    beforeEach(async () => {
+      await adapter.open(dbPath, 'unicode61');
+    });
+
+    test('syncs collections from config', async () => {
+      const collections: Collection[] = [
+        {
+          name: 'notes',
+          path: '/home/user/notes',
+          pattern: '**/*.md',
+          include: ['.md'],
+          exclude: ['.git'],
+        },
+        {
+          name: 'docs',
+          path: '/home/user/docs',
+          pattern: '**/*',
+          include: [],
+          exclude: [],
+        },
+      ];
+
+      const syncResult = await adapter.syncCollections(collections);
+      expect(syncResult.ok).toBe(true);
+
+      const getResult = await adapter.getCollections();
+      expect(getResult.ok).toBe(true);
+      if (!getResult.ok) return;
+
+      expect(getResult.value).toHaveLength(2);
+
+      const notes = getResult.value.find((c) => c.name === 'notes');
+      expect(notes).toBeDefined();
+      expect(notes?.path).toBe('/home/user/notes');
+      expect(notes?.pattern).toBe('**/*.md');
+      expect(notes?.include).toEqual(['.md']);
+      expect(notes?.exclude).toEqual(['.git']);
+    });
+
+    test('removes deleted collections on sync', async () => {
+      const initialCollections: Collection[] = [
+        {
+          name: 'notes',
+          path: '/notes',
+          pattern: '**/*',
+          include: [],
+          exclude: [],
+        },
+        {
+          name: 'docs',
+          path: '/docs',
+          pattern: '**/*',
+          include: [],
+          exclude: [],
+        },
+      ];
+
+      await adapter.syncCollections(initialCollections);
+
+      // Remove 'docs' from config
+      const updatedCollections: Collection[] = [
+        {
+          name: 'notes',
+          path: '/notes',
+          pattern: '**/*',
+          include: [],
+          exclude: [],
+        },
+      ];
+
+      await adapter.syncCollections(updatedCollections);
+
+      const result = await adapter.getCollections();
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+
+      expect(result.value).toHaveLength(1);
+      expect(result.value[0].name).toBe('notes');
+    });
+  });
+
+  describe('contexts sync', () => {
+    beforeEach(async () => {
+      await adapter.open(dbPath, 'unicode61');
+    });
+
+    test('syncs contexts from config', async () => {
+      const contexts: Context[] = [
+        { scopeType: 'global', scopeKey: '/', text: 'Global context' },
+        {
+          scopeType: 'collection',
+          scopeKey: 'notes:',
+          text: 'Notes collection context',
+        },
+      ];
+
+      const syncResult = await adapter.syncContexts(contexts);
+      expect(syncResult.ok).toBe(true);
+
+      const getResult = await adapter.getContexts();
+      expect(getResult.ok).toBe(true);
+      if (!getResult.ok) return;
+
+      expect(getResult.value).toHaveLength(2);
+
+      const global = getResult.value.find((c) => c.scopeType === 'global');
+      expect(global?.text).toBe('Global context');
+    });
+  });
+
+  describe('documents', () => {
+    beforeEach(async () => {
+      await adapter.open(dbPath, 'unicode61');
+      await adapter.syncCollections([
+        {
+          name: 'notes',
+          path: '/notes',
+          pattern: '**/*',
+          include: [],
+          exclude: [],
+        },
+      ]);
+    });
+
+    test('upserts and retrieves document', async () => {
+      const doc: DocumentInput = {
+        collection: 'notes',
+        relPath: 'readme.md',
+        sourceHash: 'abc123def456',
+        sourceMime: 'text/markdown',
+        sourceExt: '.md',
+        sourceSize: 1024,
+        sourceMtime: '2024-01-01T00:00:00Z',
+        title: 'README',
+        mirrorHash: 'mirror123',
+        converterId: 'native/markdown',
+        converterVersion: '1.0.0',
+      };
+
+      const upsertResult = await adapter.upsertDocument(doc);
+      expect(upsertResult.ok).toBe(true);
+      if (!upsertResult.ok) return;
+
+      // docid is derived from sourceHash
+      expect(upsertResult.value).toBe('#abc123');
+
+      const getResult = await adapter.getDocument('notes', 'readme.md');
+      expect(getResult.ok).toBe(true);
+      if (!getResult.ok) return;
+
+      expect(getResult.value).not.toBeNull();
+      expect(getResult.value?.docid).toBe('#abc123');
+      expect(getResult.value?.uri).toBe('gno://notes/readme.md');
+      expect(getResult.value?.title).toBe('README');
+      expect(getResult.value?.active).toBe(true);
+    });
+
+    test('retrieves document by docid', async () => {
+      const doc: DocumentInput = {
+        collection: 'notes',
+        relPath: 'test.md',
+        sourceHash: 'xyz789',
+        sourceMime: 'text/markdown',
+        sourceExt: '.md',
+        sourceSize: 512,
+        sourceMtime: '2024-01-01T00:00:00Z',
+      };
+
+      await adapter.upsertDocument(doc);
+
+      const result = await adapter.getDocumentByDocid('#xyz789');
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+
+      expect(result.value).not.toBeNull();
+      expect(result.value?.relPath).toBe('test.md');
+    });
+
+    test('retrieves document by URI', async () => {
+      const doc: DocumentInput = {
+        collection: 'notes',
+        relPath: 'subdir/file.md',
+        sourceHash: 'uri123',
+        sourceMime: 'text/markdown',
+        sourceExt: '.md',
+        sourceSize: 256,
+        sourceMtime: '2024-01-01T00:00:00Z',
+      };
+
+      await adapter.upsertDocument(doc);
+
+      const result = await adapter.getDocumentByUri(
+        'gno://notes/subdir/file.md'
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+
+      expect(result.value).not.toBeNull();
+      expect(result.value?.relPath).toBe('subdir/file.md');
+    });
+
+    test('marks documents inactive', async () => {
+      await adapter.upsertDocument({
+        collection: 'notes',
+        relPath: 'a.md',
+        sourceHash: 'hash_a',
+        sourceMime: 'text/markdown',
+        sourceExt: '.md',
+        sourceSize: 100,
+        sourceMtime: '2024-01-01T00:00:00Z',
+      });
+
+      await adapter.upsertDocument({
+        collection: 'notes',
+        relPath: 'b.md',
+        sourceHash: 'hash_b',
+        sourceMime: 'text/markdown',
+        sourceExt: '.md',
+        sourceSize: 100,
+        sourceMtime: '2024-01-01T00:00:00Z',
+      });
+
+      const markResult = await adapter.markInactive('notes', ['a.md']);
+      expect(markResult.ok).toBe(true);
+      if (!markResult.ok) return;
+      expect(markResult.value).toBe(1);
+
+      const docA = await adapter.getDocument('notes', 'a.md');
+      expect(docA.ok).toBe(true);
+      if (!docA.ok) return;
+      expect(docA.value?.active).toBe(false);
+
+      const docB = await adapter.getDocument('notes', 'b.md');
+      expect(docB.ok).toBe(true);
+      if (!docB.ok) return;
+      expect(docB.value?.active).toBe(true);
+    });
+
+    test('lists documents with optional collection filter', async () => {
+      await adapter.syncCollections([
+        {
+          name: 'notes',
+          path: '/notes',
+          pattern: '**/*',
+          include: [],
+          exclude: [],
+        },
+        {
+          name: 'docs',
+          path: '/docs',
+          pattern: '**/*',
+          include: [],
+          exclude: [],
+        },
+      ]);
+
+      await adapter.upsertDocument({
+        collection: 'notes',
+        relPath: 'note.md',
+        sourceHash: 'note_hash',
+        sourceMime: 'text/markdown',
+        sourceExt: '.md',
+        sourceSize: 100,
+        sourceMtime: '2024-01-01T00:00:00Z',
+      });
+
+      await adapter.upsertDocument({
+        collection: 'docs',
+        relPath: 'doc.md',
+        sourceHash: 'doc_hash',
+        sourceMime: 'text/markdown',
+        sourceExt: '.md',
+        sourceSize: 100,
+        sourceMtime: '2024-01-01T00:00:00Z',
+      });
+
+      // All documents
+      let result = await adapter.listDocuments();
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.value).toHaveLength(2);
+
+      // Filtered by collection
+      result = await adapter.listDocuments('notes');
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.value).toHaveLength(1);
+      expect(result.value[0].collection).toBe('notes');
+    });
+  });
+
+  describe('content', () => {
+    beforeEach(async () => {
+      await adapter.open(dbPath, 'unicode61');
+    });
+
+    test('upserts and retrieves content by mirror hash', async () => {
+      const markdown = '# Hello World\n\nThis is content.';
+      const mirrorHash = 'content_hash_123';
+
+      const upsertResult = await adapter.upsertContent(mirrorHash, markdown);
+      expect(upsertResult.ok).toBe(true);
+
+      const getResult = await adapter.getContent(mirrorHash);
+      expect(getResult.ok).toBe(true);
+      if (!getResult.ok) return;
+
+      expect(getResult.value).toBe(markdown);
+    });
+
+    test('returns null for missing content', async () => {
+      const result = await adapter.getContent('nonexistent');
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.value).toBeNull();
+    });
+
+    test('upsert is idempotent', async () => {
+      const mirrorHash = 'idem_hash';
+      const markdown = 'content';
+
+      await adapter.upsertContent(mirrorHash, markdown);
+      await adapter.upsertContent(mirrorHash, 'different content');
+
+      const result = await adapter.getContent(mirrorHash);
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      // Original content is preserved (ON CONFLICT DO NOTHING)
+      expect(result.value).toBe(markdown);
+    });
+  });
+
+  describe('chunks', () => {
+    beforeEach(async () => {
+      await adapter.open(dbPath, 'unicode61');
+      await adapter.upsertContent('chunk_mirror', '# Content\n\nParagraph.');
+    });
+
+    test('upserts and retrieves chunks', async () => {
+      const chunks: ChunkInput[] = [
+        {
+          seq: 0,
+          pos: 0,
+          text: '# Content',
+          startLine: 1,
+          endLine: 1,
+          language: 'en',
+        },
+        {
+          seq: 1,
+          pos: 10,
+          text: 'Paragraph.',
+          startLine: 3,
+          endLine: 3,
+          language: 'en',
+        },
+      ];
+
+      const upsertResult = await adapter.upsertChunks('chunk_mirror', chunks);
+      expect(upsertResult.ok).toBe(true);
+
+      const getResult = await adapter.getChunks('chunk_mirror');
+      expect(getResult.ok).toBe(true);
+      if (!getResult.ok) return;
+
+      expect(getResult.value).toHaveLength(2);
+      expect(getResult.value[0].seq).toBe(0);
+      expect(getResult.value[0].text).toBe('# Content');
+      expect(getResult.value[1].seq).toBe(1);
+    });
+
+    test('replaces existing chunks on upsert', async () => {
+      const initialChunks: ChunkInput[] = [
+        { seq: 0, pos: 0, text: 'old', startLine: 1, endLine: 1 },
+      ];
+
+      await adapter.upsertChunks('chunk_mirror', initialChunks);
+
+      const newChunks: ChunkInput[] = [
+        { seq: 0, pos: 0, text: 'new1', startLine: 1, endLine: 1 },
+        { seq: 1, pos: 5, text: 'new2', startLine: 2, endLine: 2 },
+      ];
+
+      await adapter.upsertChunks('chunk_mirror', newChunks);
+
+      const result = await adapter.getChunks('chunk_mirror');
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+
+      expect(result.value).toHaveLength(2);
+      expect(result.value[0].text).toBe('new1');
+    });
+  });
+
+  describe('status', () => {
+    beforeEach(async () => {
+      await adapter.open(dbPath, 'unicode61');
+    });
+
+    test('returns index status', async () => {
+      await adapter.syncCollections([
+        {
+          name: 'notes',
+          path: '/notes',
+          pattern: '**/*',
+          include: [],
+          exclude: [],
+        },
+      ]);
+
+      await adapter.upsertDocument({
+        collection: 'notes',
+        relPath: 'test.md',
+        sourceHash: 'status_hash',
+        sourceMime: 'text/markdown',
+        sourceExt: '.md',
+        sourceSize: 100,
+        sourceMtime: '2024-01-01T00:00:00Z',
+        mirrorHash: 'status_mirror',
+      });
+
+      await adapter.upsertContent('status_mirror', '# Test');
+      await adapter.upsertChunks('status_mirror', [
+        { seq: 0, pos: 0, text: '# Test', startLine: 1, endLine: 1 },
+      ]);
+
+      const result = await adapter.getStatus();
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+
+      expect(result.value.version).toBe('1');
+      expect(result.value.ftsTokenizer).toBe('unicode61');
+      expect(result.value.dbPath).toBe(dbPath);
+      expect(result.value.totalDocuments).toBe(1);
+      expect(result.value.activeDocuments).toBe(1);
+      expect(result.value.totalChunks).toBe(1);
+      // All chunks are in embedding backlog (no vectors yet)
+      expect(result.value.embeddingBacklog).toBe(1);
+      expect(result.value.collections).toHaveLength(1);
+      expect(result.value.collections[0].name).toBe('notes');
+    });
+  });
+
+  describe('errors', () => {
+    beforeEach(async () => {
+      await adapter.open(dbPath, 'unicode61');
+    });
+
+    test('records and retrieves ingest errors', async () => {
+      await adapter.recordError({
+        collection: 'notes',
+        relPath: 'broken.pdf',
+        code: 'CORRUPT',
+        message: 'Invalid PDF structure',
+        details: { page: 5 },
+      });
+
+      const result = await adapter.getRecentErrors(10);
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+
+      expect(result.value).toHaveLength(1);
+      expect(result.value[0].code).toBe('CORRUPT');
+      expect(result.value[0].message).toBe('Invalid PDF structure');
+      expect(result.value[0].detailsJson).toContain('"page":5');
+    });
+  });
+
+  describe('cleanup', () => {
+    beforeEach(async () => {
+      await adapter.open(dbPath, 'unicode61');
+      await adapter.syncCollections([
+        {
+          name: 'notes',
+          path: '/notes',
+          pattern: '**/*',
+          include: [],
+          exclude: [],
+        },
+      ]);
+    });
+
+    test('removes orphaned content', async () => {
+      // Create document with content
+      await adapter.upsertDocument({
+        collection: 'notes',
+        relPath: 'test.md',
+        sourceHash: 'cleanup_doc',
+        sourceMime: 'text/markdown',
+        sourceExt: '.md',
+        sourceSize: 100,
+        sourceMtime: '2024-01-01T00:00:00Z',
+        mirrorHash: 'cleanup_mirror',
+      });
+
+      await adapter.upsertContent('cleanup_mirror', '# Test');
+      await adapter.upsertContent('orphan_content', '# Orphan');
+
+      // Mark document inactive
+      await adapter.markInactive('notes', ['test.md']);
+
+      const result = await adapter.cleanupOrphans();
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+
+      // Both contents should be cleaned (doc is inactive)
+      expect(result.value.orphanedContent).toBe(2);
+
+      // Verify content is gone
+      const content = await adapter.getContent('orphan_content');
+      expect(content.ok).toBe(true);
+      if (!content.ok) return;
+      expect(content.value).toBeNull();
+    });
+  });
+});
