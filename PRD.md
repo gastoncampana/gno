@@ -613,8 +613,8 @@ Golden tests:
   * `source_mime`, `source_ext`
   * `source_mtime`, `source_size`
   * `source_hash` (sha256)
-  * `docid` (derived from `source_hash`)
-  * `mirror_hash`
+  * `docid` (derived from `source_hash`, 8 hex chars)
+  * `mirror_hash` (soft reference to `content`, NOT an FK - documents are tracked before content exists; `cleanupOrphans()` handles integrity)
   * `converter_id`, `converter_version`
   * `language_hint` (optional; BCP-47 or `und`)
   * `active`
