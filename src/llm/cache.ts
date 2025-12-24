@@ -63,31 +63,37 @@ export function parseModelUri(
     const colonMatch = rest.match(HF_QUANT_PATTERN);
     if (colonMatch) {
       const [, org, repo, quant] = colonMatch;
-      return {
-        ok: true,
-        value: {
-          scheme: 'hf',
-          org,
-          repo,
-          file: '', // Will be resolved by node-llama-cpp
-          quantization: quant,
-        },
-      };
+      // Regex guarantees these are defined when match succeeds
+      if (org && repo && quant) {
+        return {
+          ok: true,
+          value: {
+            scheme: 'hf',
+            org,
+            repo,
+            file: '', // Will be resolved by node-llama-cpp
+            quantization: quant,
+          },
+        };
+      }
     }
 
     // Full path: hf:org/repo/file.gguf
     const pathMatch = rest.match(HF_PATH_PATTERN);
     if (pathMatch) {
       const [, org, repo, file] = pathMatch;
-      return {
-        ok: true,
-        value: {
-          scheme: 'hf',
-          org,
-          repo,
-          file,
-        },
-      };
+      // Regex guarantees these are defined when match succeeds
+      if (org && repo && file) {
+        return {
+          ok: true,
+          value: {
+            scheme: 'hf',
+            org,
+            repo,
+            file,
+          },
+        };
+      }
     }
 
     return { ok: false, error: `Invalid hf: URI format: ${uri}` };
@@ -226,26 +232,32 @@ export class ModelCache {
       const { resolveModelFile } = await import('node-llama-cpp');
 
       // Convert to node-llama-cpp format (handles quantization shorthand)
-      // hf:org/repo/file.gguf -> org/repo/file.gguf
-      // hf:org/repo:Q4_K_M -> org/repo:Q4_K_M
+      // node-llama-cpp needs hf: prefix to identify HuggingFace models
       const hfUri = toNodeLlamaCppUri(parsed.value);
-      const hfPath = hfUri.startsWith('hf:') ? hfUri.slice(3) : hfUri;
 
-      const resolvedPath = await resolveModelFile(hfPath, {
+      const resolvedPath = await resolveModelFile(hfUri, {
         directory: this.dir,
         onProgress: onProgress
-          ? (status) => {
+          ? (status: unknown) => {
+              // Type-safe check for download progress status
               if (
+                status &&
+                typeof status === 'object' &&
+                'type' in status &&
                 status.type === 'download' &&
                 'downloadedSize' in status &&
                 'totalSize' in status
               ) {
+                const s = status as {
+                  downloadedSize: number;
+                  totalSize: number;
+                };
                 const progress: DownloadProgress = {
-                  downloadedBytes: status.downloadedSize,
-                  totalBytes: status.totalSize,
+                  downloadedBytes: s.downloadedSize,
+                  totalBytes: s.totalSize,
                   percent:
-                    status.totalSize > 0
-                      ? (status.downloadedSize / status.totalSize) * 100
+                    s.totalSize > 0
+                      ? (s.downloadedSize / s.totalSize) * 100
                       : 0,
                 };
                 onProgress(progress);
