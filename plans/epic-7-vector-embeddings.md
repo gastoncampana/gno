@@ -5,7 +5,7 @@
 **Type:** Epic
 **Dependencies:** EPIC 5 (Indexing/FTS), EPIC 6 (LLM subsystem) - both completed
 **Blocks:** EPIC 8 (Search pipelines), EPIC 13 (Raycast extension)
-**Last Updated:** 2025-12-24 (post-review revision)
+**Last Updated:** 2025-12-24 (post-review revision 3 - all issues addressed)
 
 ---
 
@@ -24,13 +24,24 @@ Implement vector embedding workflow that transforms chunked document content int
 
 ## Critical Issues Addressed (Post-Review)
 
-The following issues were identified in architectural review and are resolved in this plan:
+The following issues were identified in architectural reviews and are resolved in this plan:
 
+**Review 1 Issues:**
 1. **EmbeddingPort.dimensions() throws before embed()** - Fixed via lazy dimensions discovery (probe embedding)
 2. **Multi-model vec index collision** - Resolved with per-model vec tables (`vec_<modelHash>`)
 3. **StorePort.open() signature change** - Avoided via separate VectorIndexPort factory
-4. **Backlog may include orphan chunks** - Fixed with active document join
-5. **Vec index maintenance on chunk deletion** - Handled via explicit cleanup in transactions
+4. **Backlog may include orphan chunks** - Fixed with `EXISTS` subquery (not JOIN to avoid dups)
+5. **Vec index maintenance on chunk deletion** - Handled via explicit `syncVecIndex()` after rechunking
+
+**Review 2 Issues:**
+6. **StorePort.getDb() doesn't exist** - Fixed via `SqliteDbProvider` type guard interface
+7. **Backlog query duplicates** - Fixed using `EXISTS` instead of `INNER JOIN`
+8. **ESM require() incompatible** - Fixed using `await import("sqlite-vec")`
+9. **CLI spec misalignment** - Aligned: batch default=32, document `--dry-run` in spec
+10. **Embed errors persistence** - Reuse `ingest_errors` table with EMBED_* codes
+11. **Foreign key enforcement** - Require `PRAGMA foreign_keys = ON`
+12. **BLOB encoding footgun** - Added canonical encode/decode helpers
+13. **Backlog pagination** - Added `limit`/`offset` params to `getBacklog()`
 
 ---
 
@@ -84,22 +95,44 @@ export type ChunkRow = {
 
 **Goal:** Optional vector **search acceleration** with graceful degradation. Vector storage always works via `content_vectors` table; sqlite-vec enables fast KNN search.
 
-#### 7.1.0 Architecture Decision: Separate VectorIndexPort
+#### 7.1.0 Architecture Decision: Separate VectorIndexPort + SqliteDbProvider
 
-**Problem:** Existing `StorePort.open()` signature cannot accept embedding dimensions early (unknown until model loads and embeds first chunk).
+**Problem:** Existing `StorePort.open()` signature cannot accept embedding dimensions early (unknown until model loads and embeds first chunk). Also, vector layer needs raw DB access but `StorePort` doesn't expose it.
 
-**Solution:** Create a standalone `VectorIndexPort` factory, NOT a sub-port of StorePort:
+**Solution:**
+1. Create a standalone `VectorIndexPort` factory, NOT a sub-port of StorePort
+2. Add `SqliteDbProvider` type guard to safely access raw DB from sqlite adapter only
+
+```typescript
+// src/store/sqlite/types.ts
+import type { Database } from "bun:sqlite";
+
+/**
+ * Type guard interface for accessing raw SQLite DB.
+ * Only implemented by SqliteAdapter, not part of StorePort contract.
+ */
+export type SqliteDbProvider = {
+  getRawDb(): Database;
+};
+
+export function isSqliteDbProvider(store: unknown): store is SqliteDbProvider {
+  return store !== null &&
+    typeof store === 'object' &&
+    'getRawDb' in store &&
+    typeof (store as SqliteDbProvider).getRawDb === 'function';
+}
+```
 
 ```typescript
 // src/store/vector/index.ts
-export function createVectorIndexPort(
+export async function createVectorIndexPort(
   db: Database,
   options: {
     model: string;
     dimensions: number;
     distanceMetric?: 'cosine' | 'l2';
   }
-): StoreResult<VectorIndexPort>;
+): Promise<StoreResult<VectorIndexPort>>;
 ```
 
 This preserves StorePort stability while enabling lazy vector index creation.
@@ -160,7 +193,11 @@ export type VectorIndexPort = {
  */
 export type VectorStatsPort = {
   countVectors(model: string): Promise<StoreResult<number>>;
-  getBacklog(model: string): Promise<StoreResult<BacklogItem[]>>;
+  getBacklog(
+    model: string,
+    options?: { limit?: number; offset?: number }
+  ): Promise<StoreResult<BacklogItem[]>>;
+  countBacklog(model: string): Promise<StoreResult<number>>;
 };
 
 export type BacklogItem = {
@@ -178,6 +215,8 @@ File: `src/store/vector/sqliteVec.ts`
 **Key Design:** Per-model vec tables to avoid dimension/collision issues:
 - Table name: `vec_<modelHash>` where modelHash = first 8 chars of SHA256(modelUri)
 - Each model gets its own vec0 virtual table with correct dimensions
+- **ESM-compatible:** Use dynamic `import()` not `require()`
+- **FK enforcement:** Require `PRAGMA foreign_keys = ON` for cascade deletes
 
 ```typescript
 import type { Database } from "bun:sqlite";
@@ -185,22 +224,51 @@ import type { VectorIndexPort, VectorRow, VectorSearchResult } from "./types";
 import type { StoreResult } from "../types";
 import { createHash } from "node:crypto";
 
+// ─────────────────────────────────────────────────────────────────────────────
+// BLOB Encoding Helpers (avoid Buffer.buffer footgun)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Encode Float32Array to Uint8Array for SQLite BLOB storage.
+ * Creates a copy to avoid shared ArrayBuffer issues.
+ */
+export function encodeEmbedding(f32: Float32Array): Uint8Array {
+  return new Uint8Array(f32.buffer.slice(f32.byteOffset, f32.byteOffset + f32.byteLength));
+}
+
+/**
+ * Decode Uint8Array from SQLite BLOB to Float32Array.
+ * Creates a copy to avoid shared ArrayBuffer issues.
+ */
+export function decodeEmbedding(blob: Uint8Array): Float32Array {
+  const copy = new Uint8Array(blob); // Ensure we own the buffer
+  return new Float32Array(copy.buffer, copy.byteOffset, copy.byteLength / 4);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Core Implementation
+// ─────────────────────────────────────────────────────────────────────────────
+
 function modelTableName(modelUri: string): string {
   const hash = createHash('sha256').update(modelUri).digest('hex').slice(0, 8);
   return `vec_${hash}`;
 }
 
-export function createVectorIndexPort(
+export async function createVectorIndexPort(
   db: Database,
   options: { model: string; dimensions: number; distanceMetric?: 'cosine' | 'l2' }
-): StoreResult<VectorIndexPort> {
+): Promise<StoreResult<VectorIndexPort>> {
   const { model, dimensions, distanceMetric = 'cosine' } = options;
   const tableName = modelTableName(model);
 
-  // Try loading sqlite-vec extension
+  // NOTE: FK enforcement should also be set in SqliteAdapter.open() as baseline invariant
+  // This ensures cascades work during ingestion/rechunking even without vector init
+  db.exec("PRAGMA foreign_keys = ON");
+
+  // Try loading sqlite-vec extension (ESM dynamic import)
   let searchAvailable = false;
   try {
-    const sqliteVec = require("sqlite-vec");
+    const sqliteVec = await import("sqlite-vec");
     sqliteVec.load(db);
     searchAvailable = true;
   } catch {
@@ -252,12 +320,12 @@ export function createVectorIndexPort(
           db.transaction(() => {
             for (const row of rows) {
               const chunkId = `${row.mirrorHash}:${row.seq}`;
-              // Always store in content_vectors
+              // Always store in content_vectors (using safe encoding)
               upsertVectorStmt.run(
                 row.mirrorHash,
                 row.seq,
                 row.model,
-                Buffer.from(row.embedding.buffer)
+                encodeEmbedding(row.embedding)
               );
               // Also store in vec0 if available
               if (upsertVecStmt) {
@@ -329,7 +397,7 @@ export function createVectorIndexPort(
           // Repopulate from content_vectors
           const rows = db.prepare(`
             SELECT mirror_hash, seq, embedding FROM content_vectors WHERE model = ?
-          `).all(model) as { mirror_hash: string; seq: number; embedding: Buffer }[];
+          `).all(model) as { mirror_hash: string; seq: number; embedding: Uint8Array }[];
 
           const insertStmt = db.prepare(`
             INSERT INTO ${tableName} (chunk_id, embedding) VALUES (?, ?)
@@ -338,7 +406,7 @@ export function createVectorIndexPort(
           db.transaction(() => {
             for (const row of rows) {
               const chunkId = `${row.mirror_hash}:${row.seq}`;
-              insertStmt.run(chunkId, new Float32Array(row.embedding.buffer));
+              insertStmt.run(chunkId, decodeEmbedding(row.embedding));
             }
           })();
 
@@ -354,9 +422,48 @@ export function createVectorIndexPort(
           return { ok: true, value: { added: 0, removed: 0 } };
         }
 
-        // Implementation: compare content_vectors vs vec table, reconcile
-        // ... (detailed implementation)
-        return { ok: true, value: { added: 0, removed: 0 } };
+        try {
+          let added = 0;
+          let removed = 0;
+
+          // 1. Remove orphans from vec table (not in content_vectors for this model)
+          const orphanResult = db.prepare(`
+            DELETE FROM ${tableName}
+            WHERE chunk_id NOT IN (
+              SELECT mirror_hash || ':' || seq
+              FROM content_vectors
+              WHERE model = ?
+            )
+          `).run(model);
+          removed = orphanResult.changes;
+
+          // 2. Add missing entries (in content_vectors but not in vec table)
+          const missing = db.prepare(`
+            SELECT cv.mirror_hash, cv.seq, cv.embedding
+            FROM content_vectors cv
+            WHERE cv.model = ?
+              AND (cv.mirror_hash || ':' || cv.seq) NOT IN (
+                SELECT chunk_id FROM ${tableName}
+              )
+          `).all(model) as { mirror_hash: string; seq: number; embedding: Uint8Array }[];
+
+          if (missing.length > 0) {
+            const insertStmt = db.prepare(`
+              INSERT INTO ${tableName} (chunk_id, embedding) VALUES (?, ?)
+            `);
+            db.transaction(() => {
+              for (const row of missing) {
+                const chunkId = `${row.mirror_hash}:${row.seq}`;
+                insertStmt.run(chunkId, decodeEmbedding(row.embedding));
+              }
+            })();
+            added = missing.length;
+          }
+
+          return { ok: true, value: { added, removed } };
+        } catch (e) {
+          return { ok: false, error: { code: 'VEC_SYNC_FAILED', message: String(e) } };
+        }
       }
     }
   };
@@ -368,6 +475,8 @@ export function createVectorIndexPort(
 File: `src/store/vector/stats.ts`
 
 **Purpose:** Backlog detection and vector stats. Works without sqlite-vec.
+
+**Key Design:** Use `EXISTS` instead of `INNER JOIN` to avoid duplicate rows when multiple active documents share the same mirror_hash.
 
 ```typescript
 import type { Database } from "bun:sqlite";
@@ -387,27 +496,67 @@ export function createVectorStatsPort(db: Database): VectorStatsPort {
       }
     },
 
-    async getBacklog(model: string): Promise<StoreResult<BacklogItem[]>> {
+    async countBacklog(model: string): Promise<StoreResult<number>> {
       try {
-        // CRITICAL: Only include chunks from ACTIVE documents
+        // Count chunks needing embedding (fast for progress display)
+        const result = db.prepare(`
+          SELECT COUNT(*) as count
+          FROM content_chunks c
+          WHERE EXISTS (
+            SELECT 1 FROM documents d
+            WHERE d.mirror_hash = c.mirror_hash AND d.active = 1
+          )
+          AND NOT EXISTS (
+            SELECT 1 FROM content_vectors v
+            WHERE v.mirror_hash = c.mirror_hash
+              AND v.seq = c.seq
+              AND v.model = ?
+              AND v.embedded_at >= c.created_at
+          )
+        `).get(model) as { count: number };
+        return { ok: true, value: result.count };
+      } catch (e) {
+        return { ok: false, error: { code: 'QUERY_FAILED', message: String(e) } };
+      }
+    },
+
+    async getBacklog(
+      model: string,
+      options?: { limit?: number; offset?: number }
+    ): Promise<StoreResult<BacklogItem[]>> {
+      try {
+        const limit = options?.limit ?? 1000; // Default batch for memory safety
+        const offset = options?.offset ?? 0;
+
+        // CRITICAL: Use EXISTS to avoid duplicates when multiple docs share mirror_hash
         const results = db.prepare(`
           SELECT c.mirror_hash, c.seq, c.text,
             CASE
-              WHEN v.mirror_hash IS NULL THEN 'new'
+              WHEN NOT EXISTS (
+                SELECT 1 FROM content_vectors v
+                WHERE v.mirror_hash = c.mirror_hash
+                  AND v.seq = c.seq
+                  AND v.model = ?
+              ) THEN 'new'
               ELSE 'changed'
             END as reason
           FROM content_chunks c
-          -- Only chunks from active documents
-          INNER JOIN documents d ON d.mirror_hash = c.mirror_hash AND d.active = 1
-          -- Left join to find missing/stale vectors
-          LEFT JOIN content_vectors v
-            ON c.mirror_hash = v.mirror_hash
-            AND c.seq = v.seq
-            AND v.model = ?
-          WHERE v.mirror_hash IS NULL
-             OR c.created_at > v.embedded_at
+          -- Only chunks from ACTIVE documents (no duplicates via EXISTS)
+          WHERE EXISTS (
+            SELECT 1 FROM documents d
+            WHERE d.mirror_hash = c.mirror_hash AND d.active = 1
+          )
+          -- Missing or stale vectors
+          AND NOT EXISTS (
+            SELECT 1 FROM content_vectors v
+            WHERE v.mirror_hash = c.mirror_hash
+              AND v.seq = c.seq
+              AND v.model = ?
+              AND v.embedded_at >= c.created_at
+          )
           ORDER BY c.mirror_hash, c.seq
-        `).all(model) as BacklogItem[];
+          LIMIT ? OFFSET ?
+        `).all(model, model, limit, offset) as BacklogItem[];
 
         return { ok: true, value: results };
       } catch (e) {
@@ -429,22 +578,34 @@ export type StoreErrorCode =
   | 'VECTOR_DELETE_FAILED'
   | 'VEC_SEARCH_UNAVAILABLE'
   | 'VEC_SEARCH_FAILED'
-  | 'VEC_REBUILD_FAILED';
+  | 'VEC_REBUILD_FAILED'
+  | 'VEC_SYNC_FAILED';
 ```
 
 #### 7.1.5 Integration Pattern (No StorePort Changes)
 
-**Key:** StorePort.open() signature remains unchanged. Vector index is created separately:
+**Key:** StorePort.open() signature remains unchanged. Vector index is created separately using type-guarded raw DB access:
 
 ```typescript
+import { isSqliteDbProvider } from "../store/sqlite/types";
+
 // In gno embed command or service layer
 async function initEmbedding(config: Config, store: StorePort): Promise<{
   embedPort: EmbeddingPort;
   vectorIndex: VectorIndexPort;
   stats: VectorStatsPort;
 }> {
+  // 0. Require SQLite adapter for vector operations
+  if (!isSqliteDbProvider(store)) {
+    throw new Error("Vector operations require SQLite store backend");
+  }
+  const db = store.getRawDb();
+
   // 1. Get model URI from config
   const modelUri = config.models.presets.find(p => p.id === config.models.activePreset)?.embed;
+  if (!modelUri) {
+    throw new Error("No embedding model configured. Set models.activePreset in config.");
+  }
 
   // 2. Create embedding port (from EPIC 6)
   const llm = new LlmAdapter(config);
@@ -458,8 +619,7 @@ async function initEmbedding(config: Config, store: StorePort): Promise<{
   const dimensions = probeResult.value.length;
 
   // 4. Create vector index port (NOW we know dimensions)
-  const db = store.getDb(); // Expose raw db for vector layer
-  const vectorResult = createVectorIndexPort(db, { model: modelUri, dimensions });
+  const vectorResult = await createVectorIndexPort(db, { model: modelUri, dimensions });
   if (!vectorResult.ok) throw new Error(vectorResult.error.message);
 
   // 5. Create stats port
@@ -488,58 +648,40 @@ async function initEmbedding(config: Config, store: StorePort): Promise<{
 
 #### 7.2.1 Backlog Detection Algorithm
 
-File: `src/indexing/backlog.ts`
+**Note:** Backlog detection is now implemented in `VectorStatsPort.getBacklog()` (see T7.1.3). This section documents the high-level algorithm.
+
+File: `src/indexing/backlog.ts` - Thin wrapper over VectorStatsPort
 
 ```typescript
+import { isSqliteDbProvider } from "../store/sqlite/types";
+import { createVectorStatsPort } from "../store/vector/stats";
+
 export type BacklogOptions = {
   model: string;
   includeChanged?: boolean; // Re-embed if content changed after embedding
   limit?: number;
-};
-
-export type BacklogItem = {
-  mirrorHash: string;
-  seq: number;
-  text: string;
-  reason: "new" | "changed" | "model_changed";
+  offset?: number;
 };
 
 export async function detectBacklog(
   store: StorePort,
   options: BacklogOptions
 ): Promise<StoreResult<BacklogItem[]>> {
-  const { model, includeChanged = true, limit } = options;
+  if (!isSqliteDbProvider(store)) {
+    return { ok: false, error: { code: 'UNSUPPORTED_STORE', message: 'Backlog requires SQLite' } };
+  }
 
-  // Query: chunks without vectors for this model
-  // OR chunks where content changed after embedding
-  const query = `
-    SELECT
-      c.mirror_hash,
-      c.seq,
-      c.text,
-      CASE
-        WHEN v.mirror_hash IS NULL THEN 'new'
-        WHEN c.created_at > v.embedded_at THEN 'changed'
-        ELSE 'model_changed'
-      END as reason
-    FROM content_chunks c
-    INNER JOIN documents d ON d.mirror_hash = c.mirror_hash AND d.active = 1
-    LEFT JOIN content_vectors v
-      ON c.mirror_hash = v.mirror_hash
-      AND c.seq = v.seq
-      AND v.model = ?
-    WHERE v.mirror_hash IS NULL
-      ${includeChanged ? "OR c.created_at > v.embedded_at" : ""}
-    ORDER BY c.mirror_hash, c.seq
-    ${limit ? `LIMIT ${limit}` : ""}
-  `;
-
-  // Execute via store
-  return store.query(query, [model]);
+  const stats = createVectorStatsPort(store.getRawDb());
+  return stats.getBacklog(options.model, {
+    limit: options.limit,
+    offset: options.offset,
+  });
 }
 ```
 
 #### 7.2.2 Status Integration
+
+**Note:** Backlog calculation must use the same logic as `VectorStatsPort.countBacklog()` to avoid definition mismatch (active docs + stale vectors).
 
 Update `src/store/types.ts` and `SqliteAdapter`:
 
@@ -548,25 +690,30 @@ Update `src/store/types.ts` and `SqliteAdapter`:
 export type IndexStatus = {
   // ... existing fields
   totalChunks: number;
-  embeddingBacklog: number;  // chunks without embeddings
+  embeddingBacklog: number;  // chunks without embeddings (active docs only)
   embeddedChunks: number;
   activeModel: string | null;
 };
 
-// In SqliteAdapter.getStatus()
-async getStatus(): Promise<StoreResult<IndexStatus>> {
-  const totalChunks = this.db.prepare("SELECT COUNT(*) as count FROM content_chunks").get();
-  const embeddedChunks = this.db.prepare(
-    "SELECT COUNT(DISTINCT mirror_hash || ':' || seq) as count FROM content_vectors WHERE model = ?"
-  ).get(activeModel);
+// In SqliteAdapter.getStatus() - delegate to VectorStatsPort for consistency
+async getStatus(model?: string): Promise<StoreResult<IndexStatus>> {
+  const totalChunks = this.db.prepare(`
+    SELECT COUNT(*) as count FROM content_chunks c
+    WHERE EXISTS (SELECT 1 FROM documents d WHERE d.mirror_hash = c.mirror_hash AND d.active = 1)
+  `).get() as { count: number };
+
+  // Use VectorStatsPort logic for accurate backlog (same EXISTS-based query)
+  const stats = createVectorStatsPort(this.db);
+  const backlogResult = model ? await stats.countBacklog(model) : { ok: true, value: 0 };
+  const embeddedResult = model ? await stats.countVectors(model) : { ok: true, value: 0 };
 
   return {
     ok: true,
     value: {
       totalChunks: totalChunks.count,
-      embeddedChunks: embeddedChunks.count,
-      embeddingBacklog: totalChunks.count - embeddedChunks.count,
-      activeModel
+      embeddedChunks: embeddedResult.ok ? embeddedResult.value : 0,
+      embeddingBacklog: backlogResult.ok ? backlogResult.value : 0,
+      activeModel: model ?? null
     }
   };
 }
@@ -605,15 +752,22 @@ File: `src/cli/commands/embed.ts`
 ```typescript
 import { parseArgs } from "node:util";
 import type { Config } from "../../config/types";
+import { isSqliteDbProvider } from "../store/sqlite/types";
 
+/**
+ * gno embed command
+ *
+ * NOTE: --dry-run and interactive prompts are extensions to spec/cli.md.
+ * Update spec/cli.md to document these before implementation.
+ */
 export async function embedCommand(args: string[], config: Config): Promise<number> {
   const { values, positionals } = parseArgs({
     args,
     options: {
       force: { type: "boolean", default: false },
       model: { type: "string" },
-      "batch-size": { type: "string", default: "64" },
-      "dry-run": { type: "boolean", default: false },
+      "batch-size": { type: "string", default: "32" }, // Per spec/cli.md
+      "dry-run": { type: "boolean", default: false },  // Extension to spec
       yes: { type: "boolean", short: "y", default: false },
     },
     allowPositionals: false,
@@ -751,20 +905,53 @@ export function calculateBatchSize(
 
 #### 7.3.3 Error Handling
 
+**Design Decision:** Reuse existing `ingest_errors` table with EMBED_* error codes. No new migration needed.
+
 ```typescript
+// Error codes for embedding failures (use with ingest_errors table)
+export const EMBED_ERROR_CODES = {
+  EMBED_TOO_LONG: 'EMBED_TOO_LONG',           // Chunk exceeds model context
+  EMBED_INFERENCE_FAILED: 'EMBED_INFERENCE_FAILED', // Model inference error
+  EMBED_MALFORMED: 'EMBED_MALFORMED',         // Invalid chunk content
+} as const;
+
 export type EmbedError = {
   mirrorHash: string;
   seq: number;
-  code: "TOO_LONG" | "INFERENCE_FAILED" | "MALFORMED";
+  code: keyof typeof EMBED_ERROR_CODES;
   message: string;
+  model: string;
 };
 
-// Store failed chunks for retry/debugging
-async function recordEmbedError(store: StorePort, error: EmbedError): Promise<void> {
-  await store.query(`
-    INSERT OR REPLACE INTO embed_errors (mirror_hash, seq, code, message, occurred_at)
-    VALUES (?, ?, ?, ?, datetime('now'))
-  `, [error.mirrorHash, error.seq, error.code, error.message]);
+// Store failed chunks in ingest_errors for retry/debugging
+// Actual schema: ingest_errors(id, collection, rel_path, occurred_at, code, message, details_json)
+// Strategy: resolve (mirror_hash, seq) → (collection, rel_path) via documents table
+async function recordEmbedError(db: Database, error: EmbedError): Promise<void> {
+  // Find a document for this mirror_hash to get collection/rel_path
+  // If multiple docs share mirror, pick first active one (deterministic via ORDER BY)
+  const doc = db.prepare(`
+    SELECT collection, rel_path FROM documents
+    WHERE mirror_hash = ? AND active = 1
+    ORDER BY id LIMIT 1
+  `).get(error.mirrorHash) as { collection: string; rel_path: string } | null;
+
+  if (!doc) {
+    // No active document - chunk is orphaned, skip error recording
+    return;
+  }
+
+  const detailsJson = JSON.stringify({
+    mirrorHash: error.mirrorHash,
+    seq: error.seq,
+    model: error.model,
+  });
+
+  // Note: ingest_errors has no UNIQUE constraint, so we just INSERT
+  // Multiple errors for same file are allowed (shows history)
+  db.prepare(`
+    INSERT INTO ingest_errors (collection, rel_path, code, message, details_json, occurred_at)
+    VALUES (?, ?, ?, ?, ?, datetime('now'))
+  `).run(doc.collection, doc.rel_path, error.code, error.message, detailsJson);
 }
 ```
 
@@ -881,17 +1068,18 @@ db.transaction(() => {
 
 ### Decision 3: sqlite-vec Installation
 
-**Decision:** Bundle sqlite-vec via npm, lazy-load at runtime.
+**Decision:** Bundle sqlite-vec via npm, lazy-load at runtime using ESM dynamic import.
 
 **Rationale:**
 - No separate installation step for users
 - Graceful degradation if native module fails
 - `gno doctor` reports availability
+- ESM-compatible (no require())
 
 **Implementation:**
 ```typescript
 try {
-  const sqliteVec = require("sqlite-vec");
+  const sqliteVec = await import("sqlite-vec");
   sqliteVec.load(db);
 } catch {
   console.warn("sqlite-vec unavailable, vector search disabled");
@@ -907,6 +1095,78 @@ try {
 - First-run UX: user shouldn't need separate `gno models pull`
 - Confirmation prevents surprise large downloads
 - `--yes` flag for scripted usage
+
+### Decision 5: Spec Update Required Before Implementation
+
+**Decision:** Update `spec/cli.md` before implementing the following extensions:
+
+```markdown
+# Required additions to spec/cli.md embed section:
+
+gno embed [--force] [--model <uri>] [--batch-size <n>] [--dry-run] [--yes]
+
+Options:
+  --dry-run     Show what would be embedded without doing it
+  --yes, -y     Skip confirmation prompts (for scripted usage)
+
+Interactive behavior:
+  - If backlog > 1000 chunks, prompt for confirmation (unless --yes)
+  - If model not available, prompt to download (unless --yes exits with code 2)
+
+Exit codes:
+  0: Success
+  1: User cancelled
+  2: Model not available or embedding failure
+```
+
+### Decision 6: Foreign Key Enforcement at Adapter Level
+
+**Decision:** Enable `PRAGMA foreign_keys = ON` in `SqliteAdapter.open()` as a baseline invariant.
+
+**Rationale:**
+- Cascade deletes from `content_chunks` → `content_vectors` must work during ingestion/rechunking
+- Without FK enforcement, old vectors may persist as orphans
+- Enabling in adapter ensures it's always on, not just when vector layer is initialized
+
+**Implementation:**
+```typescript
+// In SqliteAdapter.open() - add after opening connection
+this.db.exec("PRAGMA foreign_keys = ON");
+```
+
+### Decision 7: Vec Index Sync Points
+
+**Decision:** Call `syncVecIndex()` at these points to maintain consistency:
+
+1. **After rechunking** - When `upsertChunks()` changes chunk sequences for a mirror
+2. **Before vector search** - If stale results are unacceptable (optional, adds latency)
+3. **On `gno embed --force`** - After forced re-embedding to clean orphans
+4. **Periodic maintenance** - Via `gno doctor --fix` if drift detected
+
+**Implementation in walker:**
+```typescript
+// After rechunking a document
+async function onDocumentRechunked(mirrorHash: string, store: StorePort) {
+  if (!isSqliteDbProvider(store)) return;
+  const db = store.getRawDb();
+
+  // Get all models that have vectors for this mirror
+  const models = db.prepare(`
+    SELECT DISTINCT model FROM content_vectors WHERE mirror_hash = ?
+  `).all(mirrorHash) as { model: string }[];
+
+  for (const { model } of models) {
+    // Probe for dimensions (use cached if available)
+    const dims = await getModelDimensions(model);
+    if (dims) {
+      const vecPort = await createVectorIndexPort(db, { model, dimensions: dims });
+      if (vecPort.ok) {
+        await vecPort.value.syncVecIndex();
+      }
+    }
+  }
+}
+```
 
 ---
 
