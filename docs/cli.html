@@ -119,6 +119,9 @@
                   <a href="#add" class="docs-nav-link">gno add</a>
                 </li>
                 <li class="docs-nav-item">
+                  <a href="#embed" class="docs-nav-link">gno embed</a>
+                </li>
+                <li class="docs-nav-item">
                   <a href="#search" class="docs-nav-link">gno search</a>
                 </li>
                 <li class="docs-nav-item">
@@ -265,6 +268,98 @@
 
 <span class="token-comment"># Watch for changes</span>
 <span class="token-command">gno</span> add <span class="token-path">~/projects/docs</span> <span class="token-flag">--watch</span> <span class="token-flag">-c</span> docs</code></pre>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- gno embed -->
+            <section id="embed">
+              <h2>gno embed</h2>
+              <p>Generate vector embeddings for indexed content.</p>
+
+              <div class="command-block">
+                <div class="command-header">
+                  <span class="command-name">gno embed [options]</span>
+                  <span class="command-badge">Indexing</span>
+                </div>
+                <div class="command-body">
+                  <p class="command-desc">
+                    Generates vector embeddings for document chunks that don't
+                    have them yet. Uses configurable embedding models via
+                    node-llama-cpp. Required for vector similarity search.
+                  </p>
+
+                  <div class="options-section">
+                    <h3>Options</h3>
+                    <table class="options-table">
+                      <thead>
+                        <tr>
+                          <th>Option</th>
+                          <th>Type</th>
+                          <th>Description</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>
+                            <code>--force</code>
+                          </td>
+                          <td>boolean</td>
+                          <td>
+                            Re-embed all chunks, ignoring existing vectors
+                          </td>
+                        </tr>
+                        <tr>
+                          <td>
+                            <code>--model &lt;uri&gt;</code>
+                          </td>
+                          <td>string</td>
+                          <td>
+                            Override embedding model URI (default: from config)
+                          </td>
+                        </tr>
+                        <tr>
+                          <td>
+                            <code>--batch-size &lt;n&gt;</code>
+                          </td>
+                          <td>integer</td>
+                          <td>Chunks per batch (default: 32)</td>
+                        </tr>
+                        <tr>
+                          <td>
+                            <code>--dry-run</code>
+                          </td>
+                          <td>boolean</td>
+                          <td>Show what would be embedded without doing it</td>
+                        </tr>
+                        <tr>
+                          <td>
+                            <code>--yes, -y</code>
+                          </td>
+                          <td>boolean</td>
+                          <td>Skip confirmation prompts</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div class="example-section">
+                    <h3>Examples</h3>
+                    <div class="code-block">
+                      <pre
+                      ><code><span class="token-comment"># Embed all pending chunks</span>
+<span class="token-command">gno</span> embed
+
+<span class="token-comment"># Force re-embed everything</span>
+<span class="token-command">gno</span> embed <span class="token-flag">--force</span>
+
+<span class="token-comment"># Use specific model</span>
+<span class="token-command">gno</span> embed <span class="token-flag">--model</span> <span class="token-string">hf:BAAI/bge-m3-gguf:Q4_K_M</span>
+
+<span class="token-comment"># Preview without embedding</span>
+<span class="token-command">gno</span> embed <span class="token-flag">--dry-run</span></code></pre>
                     </div>
                   </div>
                 </div>

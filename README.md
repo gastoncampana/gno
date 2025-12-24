@@ -45,21 +45,22 @@ bun run typecheck
 
 ## Project Status
 
-Currently implementing core CLI commands. See `spec/cli.md` for the full interface specification.
+Core CLI and indexing infrastructure complete. See `spec/cli.md` for the full interface specification.
 
-### Completed (EPIC 2)
+### Completed
 
-- Config schema with Zod validation
-- Collection management (add, list, remove, rename)
-- Context management (add, list, check, rm)
-- Init command with multilingual support
-- FTS tokenizer configuration (unicode61, porter, trigram)
+- **EPIC 2**: Config schema, collection/context management, init command
+- **EPIC 3**: CLI binary with Commander.js, doctor command
+- **EPIC 4**: SQLite schema, migrations, store adapters
+- **EPIC 5**: File discovery, content extraction (md/txt/pdf/docx), FTS indexing
+- **EPIC 6**: LLM subsystem with node-llama-cpp (embedding, rerank, generation)
+- **EPIC 7**: Vector embeddings with sqlite-vec, `gno embed` command
 
 ### Upcoming
 
-- EPIC 3: CLI binary and argument parsing
-- EPIC 4: Database schema and migrations
-- EPIC 5: File discovery and indexing
+- EPIC 8: Search pipelines (BM25, vector, hybrid)
+- EPIC 9: Output formatters and `gno get`
+- EPIC 10: MCP server integration
 
 ## Documentation
 
