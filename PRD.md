@@ -1254,20 +1254,150 @@ Scope:
 * stability checks for structured expansion outputs
 * multilingual ranking sanity checks (DE/FR/IT/EN mixed corpus)
 
-Metrics:
+#### 18.2.1 Evalite Setup
 
-* recall@k (k=5,10)
-* nDCG@k
-* latency budgets (soft gate initially)
+File structure:
 
-Rules:
+```
+test/
+  eval/
+    vsearch.eval.ts       # vector search ranking evals
+    query.eval.ts         # hybrid query pipeline evals
+    expansion.eval.ts     # structured expansion stability
+    multilingual.eval.ts  # cross-language ranking
+    fixtures/
+      corpus/             # DE/EN/FR/IT test documents
+      queries.json        # query-judgment pairs
+evalite.config.ts         # global eval configuration
+```
+
+Configuration (`evalite.config.ts`):
+
+```ts
+import { defineConfig } from "evalite/config";
+import { createSqliteStorage } from "evalite/sqlite-storage";
+
+export default defineConfig({
+  storage: () => createSqliteStorage("./evalite.db"),
+  testTimeout: 120000,    // 2 min for slow LLM calls
+  maxConcurrency: 10,     // parallel test cases
+  scoreThreshold: 70,     // MVP: 70%, tighten over time
+  cache: true,            // cache LLM responses in dev
+});
+```
+
+#### 18.2.2 Custom Scorers (IR Metrics)
+
+Create reusable scorers for retrieval metrics (not built into Evalite):
+
+```ts
+// test/eval/scorers/ir-metrics.ts
+import { createScorer } from "evalite";
+
+export const recallAtK = (k: number) => createScorer<
+  { query: string },
+  string[],    // output: docids
+  string[]     // expected: relevant docids
+>({
+  name: `Recall@${k}`,
+  description: `Fraction of relevant docs in top ${k} results`,
+  scorer: ({ output, expected }) => {
+    const topK = output.slice(0, k);
+    const hits = expected.filter(id => topK.includes(id)).length;
+    return {
+      score: expected.length > 0 ? hits / expected.length : 1,
+      metadata: { k, hits, total: expected.length },
+    };
+  },
+});
+
+export const ndcgAtK = (k: number) => createScorer<
+  { query: string },
+  string[],
+  { docid: string; relevance: number }[]
+>({
+  name: `nDCG@${k}`,
+  description: `Normalized DCG at rank ${k}`,
+  scorer: ({ output, expected }) => {
+    const relevanceMap = new Map(expected.map(e => [e.docid, e.relevance]));
+    const dcg = output.slice(0, k).reduce((sum, docid, i) => {
+      const rel = relevanceMap.get(docid) ?? 0;
+      return sum + (Math.pow(2, rel) - 1) / Math.log2(i + 2);
+    }, 0);
+    const ideal = [...expected]
+      .sort((a, b) => b.relevance - a.relevance)
+      .slice(0, k)
+      .reduce((sum, e, i) => sum + (Math.pow(2, e.relevance) - 1) / Math.log2(i + 2), 0);
+    return {
+      score: ideal > 0 ? dcg / ideal : 1,
+      metadata: { k, dcg, idcg: ideal },
+    };
+  },
+});
+```
+
+#### 18.2.3 Example Eval File
+
+```ts
+// test/eval/vsearch.eval.ts
+import { evalite } from "evalite";
+import { recallAtK, ndcgAtK } from "./scorers/ir-metrics";
+import { vsearch } from "../../src/pipeline/vsearch";
+
+evalite("Vector Search Ranking", {
+  data: async () => {
+    const queries = await Bun.file("test/eval/fixtures/queries.json").json();
+    return queries.map((q) => ({
+      input: { query: q.query, collection: q.collection },
+      expected: q.relevantDocs,
+    }));
+  },
+  task: async (input) => {
+    const results = await vsearch(input.query, { collection: input.collection, limit: 10 });
+    return results.map(r => r.docid);
+  },
+  scorers: [
+    { scorer: (args) => recallAtK(5).scorer(args) },
+    { scorer: (args) => recallAtK(10).scorer(args) },
+    { scorer: (args) => ndcgAtK(10).scorer(args) },
+  ],
+  trialCount: 1,  // deterministic for same embeddings
+});
+```
+
+#### 18.2.4 Metrics
+
+* recall@k (k=5,10) via custom scorer
+* nDCG@k via custom scorer
+* latency budgets (soft gate initially, tracked via custom column)
+
+#### 18.2.5 Rules
 
 * golden tests must not depend on exact expanded queries
 * eval thresholds must tolerate minor model drift while catching major regressions
+* use `trialCount > 1` for non-deterministic tasks (e.g., LLM expansion) to measure variance
+* cache LLM responses in dev (`cache: true`) for fast iteration
 
-Multilingual eval notes (MVP):
+#### 18.2.6 CLI Usage
+
+```bash
+# Dev: watch mode with UI at localhost:3006
+bun run evalite watch
+
+# CI: run once, fail if threshold not met
+bun run evalite --threshold=70 --outputPath=./eval-results.json
+
+# Export static UI for CI artifacts
+bun run evalite export --output=./eval-ui
+```
+
+#### 18.2.7 Multilingual Eval Notes (MVP)
+
 * include language-mismatched queries (e.g., DE query over EN doc) to validate vector + rerank behavior
 * do not gate on exact expansion text, only on ranking metrics and schema validity
+* use `columns` to show `snippetLanguage` for debugging cross-language behavior
+
+See `spec/evals.md` for detailed implementation specification.
 
 ---
 
@@ -1321,7 +1451,7 @@ Repo must include:
 * `spec/db/schema.sql` (placeholder exists)
 * `spec/converters.md`
 * `spec/models.md`
-* `spec/evals.md`
+* `spec/evals.md` (Evalite v1 implementation spec)
 * `spec/output-schemas/*.json` ✓
 
 Contract tests: `test/spec/schemas/` (94 tests via Ajv)
