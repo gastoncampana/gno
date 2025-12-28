@@ -17,6 +17,15 @@ Local knowledge indexing and semantic search CLI with MCP (Model Context Protoco
 bun install
 ```
 
+### Prerequisites
+
+- **Linux/Windows**: Works out of box
+- **macOS**: Vector search requires Homebrew SQLite:
+  ```bash
+  brew install sqlite3
+  ```
+  Run `gno doctor` to verify setup.
+
 ## Quick Start
 
 ```bash
