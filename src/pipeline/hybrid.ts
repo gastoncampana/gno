@@ -10,6 +10,7 @@ import type { EmbeddingPort, GenerationPort, RerankPort } from '../llm/types';
 import type { StorePort } from '../store/types';
 import { err, ok } from '../store/types';
 import type { VectorIndexPort } from '../store/vector/types';
+import { createChunkLookup } from './chunk-lookup';
 import { expandQuery } from './expansion';
 import {
   buildExplainResults,
@@ -380,6 +381,7 @@ export async function searchHybrid(
     return err('QUERY_FAILED', chunksMapResult.error.message);
   }
   const chunksMap = chunksMapResult.value;
+  const getChunk = createChunkLookup(chunksMap);
 
   // Cache full content by mirrorHash for --full mode
   const contentCache = new Map<
@@ -410,9 +412,8 @@ export async function searchHybrid(
       continue;
     }
 
-    // Get chunks from batch result
-    const chunks = chunksMap.get(candidate.mirrorHash) ?? [];
-    const chunk = chunks.find((c) => c.seq === candidate.seq);
+    // Get chunk via O(1) lookup
+    const chunk = getChunk(candidate.mirrorHash, candidate.seq);
     if (!chunk) {
       continue;
     }

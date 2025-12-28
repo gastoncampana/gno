@@ -7,6 +7,7 @@
 
 import type { ChunkRow, FtsResult, StorePort } from '../store/types';
 import { err, ok } from '../store/types';
+import { createChunkLookup } from './chunk-lookup';
 import type {
   SearchOptions,
   SearchResult,
@@ -154,9 +155,16 @@ export async function searchBm25(
   // Build results
   const results: SearchResult[] = [];
 
-  // TODO: Refactor to use store.getChunksBatch() for N+1 elimination
-  // (deferred - FTS JOIN already handles main query efficiently)
-  const chunkCache = new Map<string, ChunkRow[]>();
+  // Pre-fetch all chunks in one batch query (eliminates N+1)
+  const uniqueHashes = [
+    ...new Set(
+      ftsResult.value.map((f) => f.mirrorHash).filter((h): h is string => !!h)
+    ),
+  ];
+  const chunksMapResult = await store.getChunksBatch(uniqueHashes);
+  const getChunk = chunksMapResult.ok
+    ? createChunkLookup(chunksMapResult.value)
+    : () => undefined;
 
   // For --full, track best score per docid to de-dupe
   const bestByDocid = new Map<
@@ -165,21 +173,10 @@ export async function searchBm25(
   >();
 
   for (const fts of ftsResult.value) {
-    // Get chunk for snippetRange if we have mirrorHash+seq (cached)
-    let chunk: ChunkRow | null = null;
-    if (fts.mirrorHash) {
-      let chunks = chunkCache.get(fts.mirrorHash);
-      if (!chunks) {
-        const chunksResult = await store.getChunks(fts.mirrorHash);
-        if (chunksResult.ok) {
-          chunks = chunksResult.value;
-          chunkCache.set(fts.mirrorHash, chunks);
-        }
-      }
-      if (chunks) {
-        chunk = chunks.find((c) => c.seq === fts.seq) ?? null;
-      }
-    }
+    // Get chunk via O(1) lookup
+    const chunk = fts.mirrorHash
+      ? (getChunk(fts.mirrorHash, fts.seq) ?? null)
+      : null;
 
     // For --full, de-dupe by docid (keep best scoring chunk per doc)
     // Raw BM25: smaller (more negative) is better

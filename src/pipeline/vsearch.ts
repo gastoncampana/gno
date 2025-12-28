@@ -10,6 +10,7 @@ import type { EmbeddingPort } from '../llm/types';
 import type { StorePort } from '../store/types';
 import { err, ok } from '../store/types';
 import type { VectorIndexPort } from '../store/vector/types';
+import { createChunkLookup } from './chunk-lookup';
 import type { SearchOptions, SearchResult, SearchResults } from './types';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -94,6 +95,7 @@ export async function searchVectorWithEmbedding(
     return err('QUERY_FAILED', chunksMapResult.error.message);
   }
   const chunksMap = chunksMapResult.value;
+  const getChunk = createChunkLookup(chunksMap);
 
   // Build search results
   const results: SearchResult[] = [];
@@ -110,9 +112,8 @@ export async function searchVectorWithEmbedding(
       continue;
     }
 
-    // Get chunks from batch result
-    const chunks = chunksMap.get(vec.mirrorHash) ?? [];
-    const chunk = chunks.find((c) => c.seq === vec.seq);
+    // Get chunk via O(1) lookup
+    const chunk = getChunk(vec.mirrorHash, vec.seq);
     if (!chunk) {
       continue;
     }

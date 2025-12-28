@@ -7,6 +7,7 @@
 
 import type { RerankPort } from '../llm/types';
 import type { StorePort } from '../store/types';
+import { createChunkLookup } from './chunk-lookup';
 import type { BlendingTier, FusionCandidate, RerankedCandidate } from './types';
 import { DEFAULT_BLENDING_SCHEDULE } from './types';
 
@@ -137,11 +138,11 @@ export async function rerankCandidates(
     };
   }
   const chunksMap = chunksMapResult.value;
+  const getChunk = createChunkLookup(chunksMap);
 
-  // Build texts array for reranking
+  // Build texts array for reranking (O(1) lookup per candidate)
   const texts: string[] = toRerank.map((c) => {
-    const chunks = chunksMap.get(c.mirrorHash) ?? [];
-    const chunk = chunks.find((ch) => ch.seq === c.seq);
+    const chunk = getChunk(c.mirrorHash, c.seq);
     return chunk?.text ?? '';
   });
 
