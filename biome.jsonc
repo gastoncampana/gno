@@ -26,6 +26,11 @@
   },
   "linter": {
     "rules": {
+      "correctness": {
+        // Disable auto-fix for unused imports - prevents race condition with Claude Code
+        // PostToolUse hook (ultracite fix runs after Edit, removing imports before usage added)
+        "noUnusedImports": { "level": "error", "fix": "none" }
+      },
       "suspicious": {
         "noExplicitAny": "warn"
       },
