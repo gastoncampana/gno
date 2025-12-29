@@ -27,27 +27,27 @@ export type ModelUri = string;
 // ModelPreset is defined in config/types.ts (source of truth)
 // Re-exported from index.ts for convenience
 
-export type ModelCacheEntry = {
+export interface ModelCacheEntry {
   uri: ModelUri;
   type: ModelType;
   path: string;
   size: number;
   checksum: string;
   cachedAt: string;
-};
+}
 
-export type ModelStatus = {
+export interface ModelStatus {
   uri: ModelUri;
   cached: boolean;
   path: string | null;
   size?: number;
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Generation Parameters
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type GenParams = {
+export interface GenParams {
   /** Temperature (0 = deterministic). Default: 0 */
   temperature?: number;
   /** Random seed for reproducibility. Default: 42 */
@@ -56,26 +56,26 @@ export type GenParams = {
   maxTokens?: number;
   /** Stop sequences */
   stop?: string[];
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Rerank Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type RerankScore = {
+export interface RerankScore {
   /** Original index in input array */
   index: number;
   /** Relevance score (higher = more relevant) */
   score: number;
   /** Rank position (1 = best) */
   rank: number;
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Port Interfaces
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type EmbeddingPort = {
+export interface EmbeddingPort {
   readonly modelUri: string;
   /** Initialize the embedding context (loads model). Call before dimensions(). */
   init(): Promise<LlmResult<void>>;
@@ -84,30 +84,30 @@ export type EmbeddingPort = {
   /** Returns embedding dimensions. Must call init() first. */
   dimensions(): number;
   dispose(): Promise<void>;
-};
+}
 
-export type GenerationPort = {
+export interface GenerationPort {
   readonly modelUri: string;
   generate(prompt: string, params?: GenParams): Promise<LlmResult<string>>;
   dispose(): Promise<void>;
-};
+}
 
-export type RerankPort = {
+export interface RerankPort {
   readonly modelUri: string;
   rerank(query: string, documents: string[]): Promise<LlmResult<RerankScore[]>>;
   dispose(): Promise<void>;
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Loaded Model (internal)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type LoadedModel = {
+export interface LoadedModel {
   uri: ModelUri;
   type: ModelType;
   model: unknown; // LlamaModel from node-llama-cpp
   loadedAt: number;
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Config Types
@@ -120,10 +120,10 @@ export type LoadedModel = {
 // Progress Callback
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type DownloadProgress = {
+export interface DownloadProgress {
   downloadedBytes: number;
   totalBytes: number;
   percent: number;
-};
+}
 
 export type ProgressCallback = (progress: DownloadProgress) => void;

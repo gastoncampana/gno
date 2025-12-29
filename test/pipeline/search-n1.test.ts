@@ -60,12 +60,12 @@ describe('searchBm25 N+1 guard', () => {
       getChunks: () => {
         throw new Error('N+1 detected: getChunks should not be called');
       },
-      getChunksBatch: async (hashes: string[]) => {
+      getChunksBatch: (hashes: string[]) => {
         const chunks = new Map<string, ChunkRow[]>();
         for (const hash of hashes) {
           chunks.set(hash, [makeChunk(hash, 0)]);
         }
-        return { ok: true as const, value: chunks };
+        return Promise.resolve({ ok: true as const, value: chunks });
       },
     };
 

@@ -15,22 +15,22 @@ import type { ModelStatus } from '../../../llm/types';
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type ModelsListOptions = {
+export interface ModelsListOptions {
   /** Override config path */
   configPath?: string;
   /** Output as JSON */
   json?: boolean;
   /** Output as Markdown */
   md?: boolean;
-};
+}
 
-export type PresetInfo = {
+export interface PresetInfo {
   id: string;
   name: string;
   active: boolean;
-};
+}
 
-export type ModelsListResult = {
+export interface ModelsListResult {
   activePreset: string;
   presets: PresetInfo[];
   embed: ModelStatus;
@@ -38,7 +38,7 @@ export type ModelsListResult = {
   gen: ModelStatus;
   cacheDir: string;
   totalSize: number;
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Implementation

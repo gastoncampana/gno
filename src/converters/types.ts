@@ -10,7 +10,7 @@ export type ConverterId =
   | 'adapter/officeparser'
   | string;
 
-export type ConvertInput = {
+export interface ConvertInput {
   /** Absolute path to source file */
   sourcePath: string;
   /** Relative path within collection */
@@ -32,9 +32,9 @@ export type ConvertInput = {
     /** Max output chars after conversion (zip bomb protection, default: 50M) */
     maxOutputChars?: number;
   };
-};
+}
 
-export type ConvertWarning = {
+export interface ConvertWarning {
   code:
     | 'LOSSY'
     | 'TRUNCATED'
@@ -43,13 +43,13 @@ export type ConvertWarning = {
     | 'LOW_CONFIDENCE';
   message: string;
   details?: Record<string, unknown>;
-};
+}
 
 /**
  * Raw output from individual converters.
  * Note: markdown is NOT canonical - pipeline.ts handles normalization.
  */
-export type ConvertOutput = {
+export interface ConvertOutput {
   /** Raw markdown (pipeline canonicalizes) */
   markdown: string;
   /** Extracted or derived title */
@@ -63,7 +63,7 @@ export type ConvertOutput = {
     sourceMime: string;
     warnings?: ConvertWarning[];
   };
-};
+}
 
 export type ConvertErrorCode =
   | 'UNSUPPORTED'
@@ -75,7 +75,7 @@ export type ConvertErrorCode =
   | 'ADAPTER_FAILURE'
   | 'INTERNAL';
 
-export type ConvertError = {
+export interface ConvertError {
   code: ConvertErrorCode;
   message: string;
   retryable: boolean;
@@ -86,24 +86,24 @@ export type ConvertError = {
   ext: string;
   cause?: unknown;
   details?: Record<string, unknown>;
-};
+}
 
 export type ConvertResult =
   | { ok: true; value: ConvertOutput }
   | { ok: false; error: ConvertError };
 
-export type Converter = {
+export interface Converter {
   readonly id: ConverterId;
   readonly version: string;
   canHandle(mime: string, ext: string): boolean;
   convert(input: ConvertInput): Promise<ConvertResult>;
-};
+}
 
 /**
  * Pipeline output after canonicalization and hash computation.
  * This is what consumers receive from the conversion pipeline.
  */
-export type ConversionArtifact = {
+export interface ConversionArtifact {
   /** Canonical markdown after pipeline normalization */
   markdown: string;
   /** SHA-256 hex of canonical markdown - content-addressed key */
@@ -114,7 +114,7 @@ export type ConversionArtifact = {
   languageHint?: string;
   /** Conversion metadata */
   meta: ConvertOutput['meta'];
-};
+}
 
 export type PipelineResult =
   | { ok: true; value: ConversionArtifact }

@@ -26,12 +26,12 @@ export type InitStoreResult =
 /**
  * Options for store initialization.
  */
-export type InitStoreOptions = {
+export interface InitStoreOptions {
   /** Override config path */
   configPath?: string;
   /** Filter to single collection by name */
   collection?: string;
-};
+}
 
 /**
  * Initialize store for CLI commands.

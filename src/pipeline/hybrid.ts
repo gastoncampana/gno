@@ -37,7 +37,7 @@ import { DEFAULT_PIPELINE_CONFIG } from './types';
 // Dependencies
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type HybridSearchDeps = {
+export interface HybridSearchDeps {
   store: StorePort;
   config: Config;
   vectorIndex: VectorIndexPort | null;
@@ -45,7 +45,7 @@ export type HybridSearchDeps = {
   genPort: GenerationPort | null;
   rerankPort: RerankPort | null;
   pipelineConfig?: PipelineConfig;
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Score Normalization
@@ -107,7 +107,10 @@ async function checkBm25Strength(
 // FTS Retrieval (returns ChunkIds)
 // ─────────────────────────────────────────────────────────────────────────────
 
-type ChunkId = { mirrorHash: string; seq: number };
+interface ChunkId {
+  mirrorHash: string;
+  seq: number;
+}
 
 type FtsChunksResult =
   | { ok: true; chunks: ChunkId[] }

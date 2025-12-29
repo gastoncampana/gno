@@ -26,27 +26,27 @@ import {
 
 export type DoctorCheckStatus = 'ok' | 'warn' | 'error';
 
-export type DoctorCheck = {
+export interface DoctorCheck {
   name: string;
   status: DoctorCheckStatus;
   message: string;
   /** Additional diagnostic details (shown in verbose/json output) */
   details?: string[];
-};
+}
 
-export type DoctorOptions = {
+export interface DoctorOptions {
   /** Override config path */
   configPath?: string;
   /** Output as JSON */
   json?: boolean;
   /** Output as Markdown */
   md?: boolean;
-};
+}
 
-export type DoctorResult = {
+export interface DoctorResult {
   healthy: boolean;
   checks: DoctorCheck[];
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Checks

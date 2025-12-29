@@ -156,12 +156,12 @@ function parseExpansionResult(output: string): ExpansionResult | null {
 // Expansion Function
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type ExpansionOptions = {
+export interface ExpansionOptions {
   /** Language hint for prompt selection */
   lang?: string;
   /** Timeout in milliseconds */
   timeout?: number;
-};
+}
 
 /**
  * Expand query using generation model.
@@ -215,11 +215,11 @@ export async function expandQuery(
 // Cached Expansion
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type CachedExpansionDeps = {
+export interface CachedExpansionDeps {
   genPort: GenerationPort;
   getCache: (key: string) => Promise<string | null>;
   setCache: (key: string, value: string) => Promise<void>;
-};
+}
 
 /**
  * Expand query with caching.

@@ -401,9 +401,9 @@ export async function ask(
 // Formatters
 // ─────────────────────────────────────────────────────────────────────────────
 
-type FormatOptions = {
+interface FormatOptions {
   showSources?: boolean;
-};
+}
 
 function formatTerminal(data: AskResult, opts: FormatOptions = {}): string {
   const lines: string[] = [];

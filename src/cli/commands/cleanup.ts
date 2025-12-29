@@ -13,10 +13,10 @@ import type { CleanupStats } from '../../store/types';
 /**
  * Options for cleanup command.
  */
-export type CleanupOptions = {
+export interface CleanupOptions {
   /** Override config path */
   configPath?: string;
-};
+}
 
 /**
  * Result of cleanup command.

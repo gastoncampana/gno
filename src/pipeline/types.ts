@@ -12,7 +12,7 @@ import type { StoreResult } from '../store/types';
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Source metadata for a search result */
-export type SearchResultSource = {
+export interface SearchResultSource {
   relPath: string;
   absPath?: string;
   mime: string;
@@ -20,24 +20,24 @@ export type SearchResultSource = {
   modifiedAt?: string;
   sizeBytes?: number;
   sourceHash?: string;
-};
+}
 
 /** Conversion metadata for a search result */
-export type SearchResultConversion = {
+export interface SearchResultConversion {
   converterId?: string;
   converterVersion?: string;
   mirrorHash: string;
   warnings?: { code: string; message: string }[];
-};
+}
 
 /** Snippet range in mirror content */
-export type SnippetRange = {
+export interface SnippetRange {
   startLine: number;
   endLine: number;
-};
+}
 
 /** Single search result matching output schema */
-export type SearchResult = {
+export interface SearchResult {
   docid: string;
   score: number;
   uri: string;
@@ -48,13 +48,13 @@ export type SearchResult = {
   context?: string;
   source: SearchResultSource;
   conversion?: SearchResultConversion;
-};
+}
 
 /** Search mode enum */
 export type SearchMode = 'bm25' | 'vector' | 'hybrid' | 'bm25_only';
 
 /** Search metadata */
-export type SearchMeta = {
+export interface SearchMeta {
   query: string;
   mode: SearchMode;
   expanded?: boolean;
@@ -70,20 +70,20 @@ export type SearchMeta = {
     lines: ExplainLine[];
     results: ExplainResult[];
   };
-};
+}
 
 /** Complete search results wrapper */
-export type SearchResults = {
+export interface SearchResults {
   results: SearchResult[];
   meta: SearchMeta;
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Search Options
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Common options for all search commands */
-export type SearchOptions = {
+export interface SearchOptions {
   /** Max results */
   limit?: number;
   /** Min score threshold (0-1) */
@@ -96,7 +96,7 @@ export type SearchOptions = {
   full?: boolean;
   /** Include line numbers */
   lineNumbers?: boolean;
-};
+}
 
 /** Options for hybrid search (gno query) */
 export type HybridSearchOptions = SearchOptions & {
@@ -123,19 +123,19 @@ export type AskOptions = HybridSearchOptions & {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Expansion result from LLM */
-export type ExpansionResult = {
+export interface ExpansionResult {
   lexicalQueries: string[];
   vectorQueries: string[];
   hyde?: string;
   notes?: string;
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Fusion Types
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** RRF config */
-export type RrfConfig = {
+export interface RrfConfig {
   /** RRF constant (default: 60) */
   k: number;
   /** Weight for BM25 source */
@@ -146,7 +146,7 @@ export type RrfConfig = {
   topRankBonus: number;
   /** Max rank for top-rank bonus */
   topRankThreshold: number;
-};
+}
 
 /** Default RRF configuration */
 export const DEFAULT_RRF_CONFIG: RrfConfig = {
@@ -158,10 +158,10 @@ export const DEFAULT_RRF_CONFIG: RrfConfig = {
 };
 
 /** Chunk identifier for fusion tracking */
-export type ChunkId = {
+export interface ChunkId {
   mirrorHash: string;
   seq: number;
-};
+}
 
 /** Source for a fusion candidate */
 export type FusionSource =
@@ -172,25 +172,25 @@ export type FusionSource =
   | 'hyde';
 
 /** Fusion candidate with ranks from different sources */
-export type FusionCandidate = {
+export interface FusionCandidate {
   mirrorHash: string;
   seq: number;
   bm25Rank: number | null;
   vecRank: number | null;
   fusionScore: number;
   sources: FusionSource[];
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Rerank & Blending Types
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Blending tier config */
-export type BlendingTier = {
+export interface BlendingTier {
   maxRank: number;
   fusionWeight: number;
   rerankWeight: number;
-};
+}
 
 /** Default blending schedule */
 export const DEFAULT_BLENDING_SCHEDULE: BlendingTier[] = [
@@ -210,7 +210,7 @@ export type RerankedCandidate = FusionCandidate & {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Search pipeline configuration */
-export type PipelineConfig = {
+export interface PipelineConfig {
   /** Strong BM25 threshold to skip expansion */
   strongBm25Threshold: number;
   /** Expansion timeout in ms */
@@ -221,7 +221,7 @@ export type PipelineConfig = {
   rrf: RrfConfig;
   /** Blending schedule */
   blendingSchedule: BlendingTier[];
-};
+}
 
 /** Default pipeline configuration */
 export const DEFAULT_PIPELINE_CONFIG: PipelineConfig = {
@@ -237,24 +237,24 @@ export const DEFAULT_PIPELINE_CONFIG: PipelineConfig = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Citation reference */
-export type Citation = {
+export interface Citation {
   docid: string;
   uri: string;
   startLine?: number;
   endLine?: number;
-};
+}
 
 /** Ask result metadata */
-export type AskMeta = {
+export interface AskMeta {
   expanded: boolean;
   reranked: boolean;
   vectorsUsed: boolean;
   answerGenerated?: boolean;
   totalResults?: number;
-};
+}
 
 /** Ask command result */
-export type AskResult = {
+export interface AskResult {
   query: string;
   mode: 'hybrid' | 'bm25_only';
   queryLanguage: string;
@@ -262,65 +262,65 @@ export type AskResult = {
   citations?: Citation[];
   results: SearchResult[];
   meta: AskMeta;
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Port Interfaces
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** BM25 search port */
-export type Bm25SearchPort = {
+export interface Bm25SearchPort {
   search(
     query: string,
     options?: SearchOptions
   ): Promise<StoreResult<SearchResults>>;
-};
+}
 
 /** Vector search port */
-export type VectorSearchPort = {
+export interface VectorSearchPort {
   search(
     query: string,
     options?: SearchOptions
   ): Promise<StoreResult<SearchResults>>;
-};
+}
 
 /** Query expansion port */
-export type ExpansionPort = {
+export interface ExpansionPort {
   expand(
     query: string,
     lang?: string
   ): Promise<StoreResult<ExpansionResult | null>>;
-};
+}
 
 /** Hybrid search port */
-export type HybridSearchPort = {
+export interface HybridSearchPort {
   search(
     query: string,
     options?: HybridSearchOptions
   ): Promise<StoreResult<SearchResults>>;
-};
+}
 
 /** Ask port */
-export type AskPort = {
+export interface AskPort {
   ask(query: string, options?: AskOptions): Promise<StoreResult<AskResult>>;
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Explain Types
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Explain output line */
-export type ExplainLine = {
+export interface ExplainLine {
   stage: string;
   message: string;
-};
+}
 
 /** Detailed explain for a result */
-export type ExplainResult = {
+export interface ExplainResult {
   rank: number;
   docid: string;
   score: number;
   bm25Score?: number;
   vecScore?: number;
   rerankScore?: number;
-};
+}

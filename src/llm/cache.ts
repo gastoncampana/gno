@@ -161,10 +161,10 @@ export function toNodeLlamaCppUri(parsed: ParsedModelUri): string {
 // Manifest
 // ─────────────────────────────────────────────────────────────────────────────
 
-type Manifest = {
+interface Manifest {
   version: '1.0';
   models: ModelCacheEntry[];
-};
+}
 
 const MANIFEST_VERSION = '1.0' as const;
 

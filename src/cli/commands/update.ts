@@ -11,14 +11,14 @@ import { formatSyncResultLines, initStore } from './shared';
 /**
  * Options for update command.
  */
-export type UpdateOptions = {
+export interface UpdateOptions {
   /** Override config path */
   configPath?: string;
   /** Run git pull in git repositories before scanning */
   gitPull?: boolean;
   /** Verbose output */
   verbose?: boolean;
-};
+}
 
 /**
  * Result of update command.

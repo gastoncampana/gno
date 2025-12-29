@@ -25,10 +25,10 @@ const SENTENCE_END_REGEX = /[.!?](\s+)[A-Z]/g;
  * Line index for O(1) line number lookups.
  * Stores positions of all newline characters.
  */
-type LineIndex = {
+interface LineIndex {
   /** Positions of '\n' characters in the text */
   newlines: number[];
-};
+}
 
 /**
  * Build a line index from text (O(n) once).

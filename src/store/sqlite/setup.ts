@@ -31,7 +31,10 @@ export type ExtensionLoadingMode = 'native' | 'custom' | 'unavailable';
 /**
  * Record of a SQLite load attempt for diagnostics.
  */
-export type LoadAttempt = { path: string; error: string };
+export interface LoadAttempt {
+  path: string;
+  error: string;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // State

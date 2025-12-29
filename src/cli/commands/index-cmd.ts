@@ -11,7 +11,7 @@ import { formatSyncResultLines, initStore } from './shared';
 /**
  * Options for index command.
  */
-export type IndexOptions = {
+export interface IndexOptions {
   /** Override config path */
   configPath?: string;
   /** Scope to single collection */
@@ -26,7 +26,7 @@ export type IndexOptions = {
   yes?: boolean;
   /** Verbose output */
   verbose?: boolean;
-};
+}
 
 /**
  * Result of index command.

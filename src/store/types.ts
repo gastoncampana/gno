@@ -32,12 +32,12 @@ export type StoreErrorCode =
   | 'VEC_SYNC_FAILED';
 
 /** Store error with structured details */
-export type StoreError = {
+export interface StoreError {
   code: StoreErrorCode;
   message: string;
   cause?: unknown;
   details?: Record<string, unknown>;
-};
+}
 
 /** Result type for store operations */
 export type StoreResult<T> =
@@ -63,7 +63,7 @@ export function err<T>(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Collection row from DB (mirrors config) */
-export type CollectionRow = {
+export interface CollectionRow {
   name: string;
   path: string;
   pattern: string;
@@ -72,18 +72,18 @@ export type CollectionRow = {
   updateCmd: string | null;
   languageHint: string | null;
   syncedAt: string;
-};
+}
 
 /** Context row from DB (mirrors config) */
-export type ContextRow = {
+export interface ContextRow {
   scopeType: 'global' | 'collection' | 'prefix';
   scopeKey: string;
   text: string;
   syncedAt: string;
-};
+}
 
 /** Document row from DB */
-export type DocumentRow = {
+export interface DocumentRow {
   id: number;
   collection: string;
   relPath: string;
@@ -117,10 +117,10 @@ export type DocumentRow = {
   // Timestamps
   createdAt: string;
   updatedAt: string;
-};
+}
 
 /** Chunk row from DB */
-export type ChunkRow = {
+export interface ChunkRow {
   mirrorHash: string;
   seq: number;
   pos: number;
@@ -130,10 +130,10 @@ export type ChunkRow = {
   language: string | null;
   tokenCount: number | null;
   createdAt: string;
-};
+}
 
 /** Ingest error row from DB */
-export type IngestErrorRow = {
+export interface IngestErrorRow {
   id: number;
   collection: string;
   relPath: string;
@@ -141,14 +141,14 @@ export type IngestErrorRow = {
   code: string;
   message: string;
   detailsJson: string | null;
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Input Types (for upsert operations)
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Input for upserting a document */
-export type DocumentInput = {
+export interface DocumentInput {
   collection: string;
   relPath: string;
   sourceHash: string;
@@ -163,10 +163,10 @@ export type DocumentInput = {
   languageHint?: string;
   lastErrorCode?: string;
   lastErrorMessage?: string;
-};
+}
 
 /** Input for a single chunk */
-export type ChunkInput = {
+export interface ChunkInput {
   seq: number;
   pos: number;
   text: string;
@@ -174,23 +174,23 @@ export type ChunkInput = {
   endLine: number;
   language?: string;
   tokenCount?: number;
-};
+}
 
 /** Input for recording an ingest error */
-export type IngestErrorInput = {
+export interface IngestErrorInput {
   collection: string;
   relPath: string;
   code: string;
   message: string;
   details?: Record<string, unknown>;
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Search Types
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Options for FTS search */
-export type FtsSearchOptions = {
+export interface FtsSearchOptions {
   /** Max results to return */
   limit?: number;
   /** Filter by collection */
@@ -199,10 +199,10 @@ export type FtsSearchOptions = {
   language?: string;
   /** Include snippet with highlights */
   snippet?: boolean;
-};
+}
 
 /** Single FTS search result */
-export type FtsResult = {
+export interface FtsResult {
   mirrorHash: string;
   seq: number;
   score: number;
@@ -219,14 +219,14 @@ export type FtsResult = {
   sourceMtime?: string;
   sourceSize?: number;
   sourceHash?: string;
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Status Types
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Per-collection status */
-export type CollectionStatus = {
+export interface CollectionStatus {
   name: string;
   path: string;
   totalDocuments: number;
@@ -237,10 +237,10 @@ export type CollectionStatus = {
   totalChunks: number;
   /** Chunks with embeddings (EPIC 7) */
   embeddedChunks: number;
-};
+}
 
 /** Index-level status */
-export type IndexStatus = {
+export interface IndexStatus {
   /** Config version string */
   version: string;
   /** Index name (from dbPath) */
@@ -267,26 +267,26 @@ export type IndexStatus = {
   lastUpdatedAt: string | null;
   /** Overall health status */
   healthy: boolean;
-};
+}
 
 /** Cleanup operation stats */
-export type CleanupStats = {
+export interface CleanupStats {
   orphanedContent: number;
   orphanedChunks: number;
   orphanedVectors: number;
   expiredCache: number;
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Migration Types
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Migration result */
-export type MigrationResult = {
+export interface MigrationResult {
   applied: number[];
   currentVersion: number;
   ftsTokenizer: FtsTokenizer;
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // StorePort Interface
@@ -296,7 +296,7 @@ export type MigrationResult = {
  * StorePort - Port interface for data persistence.
  * Implementations: SQLite adapter (src/store/sqlite/adapter.ts)
  */
-export type StorePort = {
+export interface StorePort {
   // ─────────────────────────────────────────────────────────────────────────
   // Lifecycle
   // ─────────────────────────────────────────────────────────────────────────
@@ -483,4 +483,4 @@ export type StorePort = {
    * Remove orphaned content, chunks, vectors, and expired cache.
    */
   cleanupOrphans(): Promise<StoreResult<CleanupStats>>;
-};
+}

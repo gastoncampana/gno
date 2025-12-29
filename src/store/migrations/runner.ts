@@ -15,7 +15,7 @@ import { err, ok } from '../types';
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Migration definition */
-export type Migration = {
+export interface Migration {
   /** Version number (must be unique and sequential) */
   version: number;
   /** Human-readable name */
@@ -24,7 +24,7 @@ export type Migration = {
   up(db: Database, ftsTokenizer: FtsTokenizer): void;
   /** Rollback migration (optional) */
   down?(db: Database): void;
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Schema Meta Queries

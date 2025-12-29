@@ -17,10 +17,10 @@ function sanitize(input: string): string {
   return input.replace(/\x1b\[[0-9;]*m/g, '').replace(/[\x00-\x1f\x7f]/g, '');
 }
 
-type ListOptions = {
+interface ListOptions {
   json?: boolean;
   md?: boolean;
-};
+}
 
 function formatMarkdown(collections: Collection[]): string {
   const lines: string[] = ['# Collections', ''];

@@ -13,14 +13,14 @@ import type { IndexStatus } from '../../store/types';
 /**
  * Options for status command.
  */
-export type StatusOptions = {
+export interface StatusOptions {
   /** Override config path */
   configPath?: string;
   /** Output as JSON */
   json?: boolean;
   /** Output as Markdown */
   md?: boolean;
-};
+}
 
 /**
  * Result of status command.

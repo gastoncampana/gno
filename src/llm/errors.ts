@@ -20,14 +20,14 @@ export type LlmErrorCode =
   | 'OUT_OF_MEMORY'
   | 'INVALID_URI';
 
-export type LlmError = {
+export interface LlmError {
   code: LlmErrorCode;
   message: string;
   modelUri?: string;
   retryable: boolean;
   cause?: unknown;
   suggestion?: string;
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants

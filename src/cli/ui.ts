@@ -11,11 +11,11 @@
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type OutputPolicy = {
+export interface OutputPolicy {
   quiet: boolean;
   json: boolean;
   isTTY: boolean;
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Policy Helpers

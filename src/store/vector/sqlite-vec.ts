@@ -57,11 +57,11 @@ function modelTableName(modelUri: string): string {
 // Factory
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type VectorIndexOptions = {
+export interface VectorIndexOptions {
   model: string;
   dimensions: number;
   distanceMetric?: 'cosine' | 'l2';
-};
+}
 
 /**
  * Create a VectorIndexPort for a specific model.

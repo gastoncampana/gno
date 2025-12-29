@@ -122,11 +122,11 @@ export function getPlatform(): Platform {
  *   Cache:  %LOCALAPPDATA%\gno\cache\
  */
 
-type PlatformPaths = {
+interface PlatformPaths {
   config: string;
   data: string;
   cache: string;
-};
+}
 
 function getLinuxPaths(): PlatformPaths {
   const home = homedir();
@@ -184,11 +184,11 @@ export function getPlatformPaths(p: Platform = getPlatform()): PlatformPaths {
  * 1. Environment overrides (GNO_CONFIG_DIR, GNO_DATA_DIR, GNO_CACHE_DIR)
  * 2. Platform defaults
  */
-export type ResolvedDirs = {
+export interface ResolvedDirs {
   config: string;
   data: string;
   cache: string;
-};
+}
 
 /**
  * Resolve directories applying env overrides.

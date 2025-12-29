@@ -11,11 +11,11 @@ import type { SearchResults } from '../../pipeline/types';
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type FormatOptions = {
+export interface FormatOptions {
   full?: boolean;
   lineNumbers?: boolean;
   format: 'terminal' | 'json' | 'files' | 'csv' | 'md' | 'xml';
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants

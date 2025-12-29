@@ -7,6 +7,14 @@
           {
             "type": "command",
             "command": "npx ultracite fix"
+          },
+          {
+            "type": "command",
+            "command": "bun run typecheck"
+          },
+          {
+            "type": "command",
+            "command": "bun run lint:typeaware"
           }
         ]
       }

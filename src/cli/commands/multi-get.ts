@@ -15,7 +15,7 @@ import { initStore } from './shared';
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type MultiGetCommandOptions = {
+export interface MultiGetCommandOptions {
   /** Override config path */
   configPath?: string;
   /** Max bytes per document (default 10240) */
@@ -28,13 +28,13 @@ export type MultiGetCommandOptions = {
   files?: boolean;
   /** Markdown output */
   md?: boolean;
-};
+}
 
 export type MultiGetResult =
   | { success: true; data: MultiGetResponse }
   | { success: false; error: string; isValidation?: boolean };
 
-export type MultiGetDocument = {
+export interface MultiGetDocument {
   docid: string;
   uri: string;
   title?: string;
@@ -42,14 +42,14 @@ export type MultiGetDocument = {
   truncated?: boolean;
   totalLines?: number;
   source: { absPath?: string; relPath: string; mime: string; ext: string };
-};
+}
 
-export type SkippedDoc = {
+export interface SkippedDoc {
   ref: string;
   reason: 'not_found' | 'conversion_error' | 'invalid_ref';
-};
+}
 
-export type MultiGetResponse = {
+export interface MultiGetResponse {
   documents: MultiGetDocument[];
   skipped: SkippedDoc[];
   meta: {
@@ -58,11 +58,11 @@ export type MultiGetResponse = {
     skipped: number;
     maxBytes?: number;
   };
-};
+}
 
-type ConfigLike = {
+interface ConfigLike {
   collections: { name: string; path: string }[];
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Document Lookup Helper
@@ -91,10 +91,10 @@ function lookupDocument(
 // Glob Expansion
 // ─────────────────────────────────────────────────────────────────────────────
 
-type ExpandResult = {
+interface ExpandResult {
   expanded: string[];
   invalidRefs: string[];
-};
+}
 
 async function expandGlobs(
   refs: string[],
@@ -165,14 +165,14 @@ function truncateContent(
 // Document Fetching
 // ─────────────────────────────────────────────────────────────────────────────
 
-type FetchContext = {
+interface FetchContext {
   store: StorePort;
   config: ConfigLike;
   maxBytes: number;
   documents: MultiGetDocument[];
   skipped: SkippedDoc[];
   seen: Set<string>;
-};
+}
 
 async function fetchSingleDocument(
   ref: string,

@@ -12,14 +12,14 @@ import type { FusionCandidate, FusionSource, RrfConfig } from './types';
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Input for fusion - ranked results from a single source */
-export type RankedInput = {
+export interface RankedInput {
   source: FusionSource;
   results: Array<{
     mirrorHash: string;
     seq: number;
     rank: number; // 1-based rank
   }>;
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // RRF Score Calculation

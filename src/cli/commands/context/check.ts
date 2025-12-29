@@ -21,11 +21,11 @@ export type OutputFormat = 'terminal' | 'json' | 'md';
 /**
  * Check result
  */
-export type CheckResult = {
+export interface CheckResult {
   valid: boolean;
   warnings: string[];
   errors: string[];
-};
+}
 
 /**
  * Validate context configuration.

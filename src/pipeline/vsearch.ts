@@ -31,12 +31,12 @@ function normalizeVectorScore(distance: number): number {
 // Vector Search Dependencies
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type VectorSearchDeps = {
+export interface VectorSearchDeps {
   store: StorePort;
   vectorIndex: VectorIndexPort;
   embedPort: EmbeddingPort;
   config: Config;
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Search Function (with pre-computed embedding)
@@ -285,14 +285,14 @@ export async function searchVector(
 // Helper Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-type ChunkInfo = {
+interface ChunkInfo {
   text: string;
   language: string | null;
   startLine: number;
   endLine: number;
-};
+}
 
-type DocumentInfo = {
+interface DocumentInfo {
   docid: string;
   uri: string;
   title: string | null;
@@ -306,7 +306,7 @@ type DocumentInfo = {
   mirrorHash: string | null;
   converterId: string | null;
   converterVersion: string | null;
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helper: Build document map by mirrorHash

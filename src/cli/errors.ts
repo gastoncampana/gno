@@ -39,9 +39,9 @@ export function exitCodeFor(err: CliError): 1 | 2 {
 // Error Formatting
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type ErrorFormatOptions = {
+export interface ErrorFormatOptions {
   json?: boolean;
-};
+}
 
 /**
  * Format error for output.

@@ -13,10 +13,10 @@ import { getPreset, listPresets } from '../../../llm/registry';
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type ModelsUseOptions = {
+export interface ModelsUseOptions {
   /** Override config path */
   configPath?: string;
-};
+}
 
 export type ModelsUseResult =
   | { success: true; preset: string; name: string }

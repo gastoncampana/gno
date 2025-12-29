@@ -14,13 +14,13 @@ import {
 } from '../../../config';
 import { CliError } from '../../errors';
 
-type AddOptions = {
+interface AddOptions {
   name?: string;
   pattern?: string;
   include?: string;
   exclude?: string;
   update?: string;
-};
+}
 
 export async function collectionAdd(
   path: string,

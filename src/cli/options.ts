@@ -54,13 +54,13 @@ const FORMAT_SUPPORT: Record<CommandId, OutputFormat[]> = {
 // Format Selection
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type FormatFlags = {
+export interface FormatFlags {
   json?: boolean;
   files?: boolean;
   csv?: boolean;
   md?: boolean;
   xml?: boolean;
-};
+}
 
 /**
  * Select output format from flags.

@@ -673,7 +673,7 @@ export class SqliteAdapter implements StorePort, SqliteDbProvider {
       }
       params.push(limit);
 
-      type FtsRow = {
+      interface FtsRow {
         mirror_hash: string;
         seq: number;
         score: number;
@@ -688,7 +688,7 @@ export class SqliteAdapter implements StorePort, SqliteDbProvider {
         source_mtime: string | null;
         source_size: number | null;
         source_hash: string | null;
-      };
+      }
 
       const rows = db.query<FtsRow, (string | number)[]>(sql).all(...params);
 
@@ -787,7 +787,7 @@ export class SqliteAdapter implements StorePort, SqliteDbProvider {
           ?.replace(INDEX_PREFIX_REGEX, '') || 'default';
 
       // Get collection stats with chunk counts
-      type CollectionStat = {
+      interface CollectionStat {
         name: string;
         path: string;
         total: number;
@@ -796,7 +796,7 @@ export class SqliteAdapter implements StorePort, SqliteDbProvider {
         chunked: number;
         chunk_count: number;
         embedded_count: number;
-      };
+      }
 
       const collectionStats = db
         .query<CollectionStat, []>(
@@ -1036,7 +1036,7 @@ export class SqliteAdapter implements StorePort, SqliteDbProvider {
 // DB Row Types (snake_case from SQLite)
 // ─────────────────────────────────────────────────────────────────────────────
 
-type DbCollectionRow = {
+interface DbCollectionRow {
   name: string;
   path: string;
   pattern: string;
@@ -1045,16 +1045,16 @@ type DbCollectionRow = {
   update_cmd: string | null;
   language_hint: string | null;
   synced_at: string;
-};
+}
 
-type DbContextRow = {
+interface DbContextRow {
   scope_type: 'global' | 'collection' | 'prefix';
   scope_key: string;
   text: string;
   synced_at: string;
-};
+}
 
-type DbDocumentRow = {
+interface DbDocumentRow {
   id: number;
   collection: string;
   rel_path: string;
@@ -1076,9 +1076,9 @@ type DbDocumentRow = {
   last_error_at: string | null;
   created_at: string;
   updated_at: string;
-};
+}
 
-type DbChunkRow = {
+interface DbChunkRow {
   mirror_hash: string;
   seq: number;
   pos: number;
@@ -1088,9 +1088,9 @@ type DbChunkRow = {
   language: string | null;
   token_count: number | null;
   created_at: string;
-};
+}
 
-type DbIngestErrorRow = {
+interface DbIngestErrorRow {
   id: number;
   collection: string;
   rel_path: string;
@@ -1098,7 +1098,7 @@ type DbIngestErrorRow = {
   code: string;
   message: string;
   details_json: string | null;
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Row Mappers (snake_case -> camelCase)

@@ -14,7 +14,7 @@ import { initStore } from './shared';
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type GetCommandOptions = {
+export interface GetCommandOptions {
   /** Override config path */
   configPath?: string;
   /** --from <line>, overrides :line suffix */
@@ -29,13 +29,13 @@ export type GetCommandOptions = {
   json?: boolean;
   /** Markdown output */
   md?: boolean;
-};
+}
 
 export type GetResult =
   | { success: true; data: GetResponse }
   | { success: false; error: string; isValidation?: boolean };
 
-export type GetResponse = {
+export interface GetResponse {
   docid: string;
   uri: string;
   title?: string;
@@ -57,7 +57,7 @@ export type GetResponse = {
     converterVersion?: string;
     mirrorHash?: string;
   };
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Document Lookup Helper
@@ -135,9 +135,9 @@ function validateOptions(options: GetCommandOptions): GetResult | null {
   return null;
 }
 
-type ConfigLike = {
+interface ConfigLike {
   collections: { name: string; path: string }[];
-};
+}
 
 async function fetchDocument(
   store: StorePort,
@@ -176,13 +176,13 @@ async function fetchDocument(
   });
 }
 
-type BuildResponseContext = {
+interface BuildResponseContext {
   doc: DocumentRow;
   fullContent: string;
   parsed: ParsedRef;
   options: GetCommandOptions;
   config: ConfigLike;
-};
+}
 
 function buildResponse(ctx: BuildResponseContext): GetResult {
   const { doc, fullContent, parsed, options, config } = ctx;
@@ -240,14 +240,14 @@ function buildResponse(ctx: BuildResponseContext): GetResult {
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-type DocRow = {
+interface DocRow {
   collection: string;
   relPath: string;
   sourceMime: string;
   sourceExt: string;
   sourceSize: number;
   sourceHash: string;
-};
+}
 
 function buildSourceMeta(
   doc: DocRow,
@@ -266,11 +266,11 @@ function buildSourceMeta(
   };
 }
 
-type ConversionDoc = {
+interface ConversionDoc {
   converterId?: string | null;
   converterVersion?: string | null;
   mirrorHash?: string | null;
-};
+}
 
 function buildConversionMeta(
   doc: ConversionDoc

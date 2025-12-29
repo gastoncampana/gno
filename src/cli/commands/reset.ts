@@ -13,22 +13,22 @@ import { isAbsolute, normalize, sep } from 'node:path';
 import { resolveDirs } from '../../app/constants';
 import { CliError } from '../errors';
 
-type ResetOptions = {
+interface ResetOptions {
   confirm?: boolean;
   keepConfig?: boolean;
   keepCache?: boolean;
-};
+}
 
-type DirResult = {
+interface DirResult {
   path: string;
   status: 'deleted' | 'missing' | 'kept';
   error?: string;
-};
+}
 
-type ResetResult = {
+interface ResetResult {
   results: DirResult[];
   errors: string[];
-};
+}
 
 // Forbidden paths that should never be deleted
 const FORBIDDEN_PATHS = new Set([

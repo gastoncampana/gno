@@ -5,16 +5,16 @@
 
 import { extname } from './path';
 
-export type MimeDetection = {
+export interface MimeDetection {
   mime: string;
   ext: string;
   confidence: 'high' | 'medium' | 'low';
   via: 'sniff' | 'sniff+ext' | 'ext' | 'fallback';
-};
+}
 
-export type MimeDetector = {
+export interface MimeDetector {
   detect(path: string, bytes: Uint8Array): MimeDetection;
-};
+}
 
 /** Extension to MIME type mapping (PRD §8.5) */
 const EXTENSION_MAP: Record<string, string> = {
@@ -58,11 +58,11 @@ function startsWith(bytes: Uint8Array, prefix: Uint8Array): boolean {
   return true;
 }
 
-type SniffResult = {
+interface SniffResult {
   mime: string;
   /** True if sniff alone is sufficient (e.g., PDF); false if ext-assisted (OOXML) */
   pureSniff: boolean;
-};
+}
 
 /**
  * Sniff MIME type from magic bytes.

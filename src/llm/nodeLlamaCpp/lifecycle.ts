@@ -16,12 +16,12 @@ import type { LlmResult, LoadedModel, ModelType } from '../types';
 type Llama = Awaited<ReturnType<typeof import('node-llama-cpp').getLlama>>;
 type LlamaModel = Awaited<ReturnType<Llama['loadModel']>>;
 
-type CachedModel = {
+interface CachedModel {
   uri: string;
   type: ModelType;
   model: LlamaModel;
   loadedAt: number;
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ModelManager

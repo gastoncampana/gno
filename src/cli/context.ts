@@ -11,7 +11,7 @@ import { setColorsEnabled } from './colors';
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type GlobalOptions = {
+export interface GlobalOptions {
   index: string;
   config?: string;
   color: boolean;
@@ -19,7 +19,7 @@ export type GlobalOptions = {
   yes: boolean;
   quiet: boolean;
   json: boolean;
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Parsing (pure - no side effects)

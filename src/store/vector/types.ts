@@ -12,31 +12,34 @@ import type { StoreResult } from '../types';
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Vector row for storage */
-export type VectorRow = {
+export interface VectorRow {
   mirrorHash: string;
   seq: number;
   model: string;
   embedding: Float32Array;
   embeddedAt: string;
-};
+}
 
 /** Vector search result */
-export type VectorSearchResult = {
+export interface VectorSearchResult {
   mirrorHash: string;
   seq: number;
   distance: number;
-};
+}
 
 /** Cursor for seek-based backlog pagination */
-export type BacklogCursor = { mirrorHash: string; seq: number };
+export interface BacklogCursor {
+  mirrorHash: string;
+  seq: number;
+}
 
 /** Backlog item needing embedding */
-export type BacklogItem = {
+export interface BacklogItem {
   mirrorHash: string;
   seq: number;
   text: string;
   reason: 'new' | 'changed' | 'force';
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // VectorIndexPort
@@ -47,7 +50,7 @@ export type BacklogItem = {
  * Storage is ALWAYS via content_vectors table (works without sqlite-vec).
  * This port adds KNN search capability when sqlite-vec is available.
  */
-export type VectorIndexPort = {
+export interface VectorIndexPort {
   /** True if sqlite-vec loaded successfully */
   readonly searchAvailable: boolean;
   /** Model URI this index is configured for */
@@ -87,7 +90,7 @@ export type VectorIndexPort = {
 
   /** Sync vec index with content_vectors (add missing, remove orphans) */
   syncVecIndex(): Promise<StoreResult<{ added: number; removed: number }>>;
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // VectorStatsPort
@@ -97,7 +100,7 @@ export type VectorIndexPort = {
  * VectorStatsPort for backlog/stats queries (model-aware).
  * Works without sqlite-vec.
  */
-export type VectorStatsPort = {
+export interface VectorStatsPort {
   /** Count vectors for a model */
   countVectors(model: string): Promise<StoreResult<number>>;
 
@@ -109,4 +112,4 @@ export type VectorStatsPort = {
     model: string,
     options?: { limit?: number; after?: BacklogCursor }
   ): Promise<StoreResult<BacklogItem[]>>;
-};
+}

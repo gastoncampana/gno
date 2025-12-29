@@ -45,11 +45,11 @@ export type QueryCommandOptions = HybridSearchOptions & {
   files?: boolean;
 };
 
-export type QueryFormatOptions = {
+export interface QueryFormatOptions {
   format: 'terminal' | 'json' | 'files' | 'csv' | 'md' | 'xml';
   full?: boolean;
   lineNumbers?: boolean;
-};
+}
 
 export type QueryResult =
   | { success: true; data: SearchResults }

@@ -55,13 +55,13 @@ function normalizeBm25Scores(results: SearchResult[]): void {
 // Result Building
 // ─────────────────────────────────────────────────────────────────────────────
 
-type BuildResultContext = {
+interface BuildResultContext {
   fts: FtsResult;
   chunk: ChunkRow | null;
   collectionPath?: string;
   options?: SearchOptions;
   fullContent?: string;
-};
+}
 
 /** Build SearchResult from FtsResult and related data */
 function buildSearchResult(ctx: BuildResultContext): SearchResult {

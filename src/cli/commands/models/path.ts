@@ -11,14 +11,14 @@ import { getModelsCachePath } from '../../../app/constants';
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type ModelsPathOptions = {
+export interface ModelsPathOptions {
   /** Output as JSON */
   json?: boolean;
-};
+}
 
-export type ModelsPathResult = {
+export interface ModelsPathResult {
   path: string;
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Implementation

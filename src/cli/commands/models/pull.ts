@@ -15,7 +15,7 @@ import type { DownloadProgress, ModelType } from '../../../llm/types';
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type ModelsPullOptions = {
+export interface ModelsPullOptions {
   /** Override config path */
   configPath?: string;
   /** Pull all models */
@@ -30,22 +30,22 @@ export type ModelsPullOptions = {
   force?: boolean;
   /** Progress callback for UI (omit to disable progress) */
   onProgress?: (type: ModelType, progress: DownloadProgress) => void;
-};
+}
 
-export type ModelPullResult = {
+export interface ModelPullResult {
   type: ModelType;
   uri: string;
   ok: boolean;
   error?: string;
   path?: string;
   skipped?: boolean;
-};
+}
 
-export type ModelsPullResult = {
+export interface ModelsPullResult {
   results: ModelPullResult[];
   failed: number;
   skipped: number;
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Implementation

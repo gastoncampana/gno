@@ -27,7 +27,7 @@ import {
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type EmbedOptions = {
+export interface EmbedOptions {
   /** Override config path */
   configPath?: string;
   /** Override model URI */
@@ -42,7 +42,7 @@ export type EmbedOptions = {
   yes?: boolean;
   /** Output as JSON */
   json?: boolean;
-};
+}
 
 export type EmbedResult =
   | {
@@ -80,7 +80,7 @@ async function checkVecAvailable(
   }
 }
 
-type BatchContext = {
+interface BatchContext {
   db: import('bun:sqlite').Database;
   stats: VectorStatsPort;
   embedPort: EmbeddingPort;
@@ -90,13 +90,16 @@ type BatchContext = {
   force: boolean;
   showProgress: boolean;
   totalToEmbed: number;
-};
+}
 
 type BatchResult =
   | { ok: true; embedded: number; errors: number; duration: number }
   | { ok: false; error: string };
 
-type Cursor = { mirrorHash: string; seq: number };
+interface Cursor {
+  mirrorHash: string;
+  seq: number;
+}
 
 async function processBatches(ctx: BatchContext): Promise<BatchResult> {
   const startTime = Date.now();

@@ -15,22 +15,22 @@ import { DEFAULT_BLENDING_SCHEDULE } from './types';
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type RerankOptions = {
+export interface RerankOptions {
   /** Max candidates to rerank */
   maxCandidates?: number;
   /** Blending schedule */
   blendingSchedule?: BlendingTier[];
-};
+}
 
-export type RerankResult = {
+export interface RerankResult {
   candidates: RerankedCandidate[];
   reranked: boolean;
-};
+}
 
-export type RerankDeps = {
+export interface RerankDeps {
   rerankPort: RerankPort | null;
   store: StorePort;
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Blending

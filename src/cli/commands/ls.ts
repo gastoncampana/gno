@@ -12,7 +12,7 @@ import { initStore } from './shared';
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type LsCommandOptions = {
+export interface LsCommandOptions {
   /** Override config path */
   configPath?: string;
   /** Max results (default 20) */
@@ -25,27 +25,27 @@ export type LsCommandOptions = {
   files?: boolean;
   /** Markdown output */
   md?: boolean;
-};
+}
 
 export type LsResult =
   | { success: true; data: LsResponse }
   | { success: false; error: string; isValidation?: boolean };
 
-export type LsDocument = {
+export interface LsDocument {
   docid: string;
   uri: string;
   title?: string;
   source: { relPath: string; mime: string; ext: string };
-};
+}
 
-export type LsResponse = {
+export interface LsResponse {
   documents: LsDocument[];
   meta: {
     total: number;
     returned: number;
     offset: number;
   };
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Scope validation regex

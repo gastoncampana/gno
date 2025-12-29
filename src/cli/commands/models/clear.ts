@@ -13,7 +13,7 @@ import type { ModelType } from '../../../llm/types';
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type ModelsClearOptions = {
+export interface ModelsClearOptions {
   /** Clear all models */
   all?: boolean;
   /** Clear embedding model */
@@ -24,13 +24,13 @@ export type ModelsClearOptions = {
   gen?: boolean;
   /** Skip confirmation */
   yes?: boolean;
-};
+}
 
-export type ModelsClearResult = {
+export interface ModelsClearResult {
   cleared: ModelType[];
   sizeBefore: number;
   sizeAfter: number;
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Implementation

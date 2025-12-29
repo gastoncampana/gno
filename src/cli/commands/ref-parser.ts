@@ -11,7 +11,7 @@
 
 export type RefType = 'docid' | 'uri' | 'collPath';
 
-export type ParsedRef = {
+export interface ParsedRef {
   type: RefType;
   /** Normalized ref (without :line suffix) */
   value: string;
@@ -21,7 +21,7 @@ export type ParsedRef = {
   relPath?: string;
   /** Parsed :line suffix (1-indexed) */
   line?: number;
-};
+}
 
 export type ParseRefResult = ParsedRef | { error: string };
 

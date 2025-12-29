@@ -11,9 +11,9 @@ import type { Database } from 'bun:sqlite';
  * Type guard interface for accessing raw SQLite DB.
  * Only implemented by SqliteAdapter, not part of StorePort contract.
  */
-export type SqliteDbProvider = {
+export interface SqliteDbProvider {
   getRawDb(): Database;
-};
+}
 
 /**
  * Check if a store implements SqliteDbProvider.

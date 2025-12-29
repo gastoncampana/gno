@@ -33,7 +33,7 @@ const LEADING_NON_ALPHANUMERIC = /^[^a-z0-9]+/;
 /**
  * Options for init command.
  */
-export type InitOptions = {
+export interface InitOptions {
   /** Optional path to add as collection */
   path?: string;
   /** Collection name (defaults to directory basename if path given) */
@@ -54,12 +54,12 @@ export type InitOptions = {
   tokenizer?: FtsTokenizer;
   /** BCP-47 language hint for collection */
   language?: string;
-};
+}
 
 /**
  * Result of init command.
  */
-export type InitResult = {
+export interface InitResult {
   success: boolean;
   alreadyInitialized?: boolean;
   configPath: string;
@@ -67,7 +67,7 @@ export type InitResult = {
   dbPath: string;
   collectionAdded?: string;
   error?: string;
-};
+}
 
 /**
  * Handle case when already initialized.

@@ -12,7 +12,7 @@ import type { Collection } from '../config/types';
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** File entry from walker */
-export type WalkEntry = {
+export interface WalkEntry {
   /** Absolute path to file */
   absPath: string;
   /** Relative path within collection (POSIX forward slashes) */
@@ -21,10 +21,10 @@ export type WalkEntry = {
   size: number;
   /** Modification time (ISO 8601) */
   mtime: string;
-};
+}
 
 /** Walker configuration */
-export type WalkConfig = {
+export interface WalkConfig {
   /** Collection root path (absolute) */
   root: string;
   /** Glob pattern (default: **\/*) */
@@ -35,18 +35,18 @@ export type WalkConfig = {
   exclude: string[];
   /** Max file size in bytes (files larger are skipped) */
   maxBytes: number;
-};
+}
 
 /** Skipped file entry (for error tracking) */
-export type SkippedEntry = {
+export interface SkippedEntry {
   absPath: string;
   relPath: string;
   reason: 'TOO_LARGE' | 'EXCLUDED';
   size?: number;
-};
+}
 
 /** Walker port interface */
-export type WalkerPort = {
+export interface WalkerPort {
   /**
    * Walk collection directory yielding file entries.
    * Filters by pattern, include, exclude.
@@ -56,19 +56,19 @@ export type WalkerPort = {
     entries: WalkEntry[];
     skipped: SkippedEntry[];
   }>;
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Chunker Types
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Chunk parameters */
-export type ChunkParams = {
+export interface ChunkParams {
   /** Max tokens per chunk (default: 800) */
   maxTokens: number;
   /** Overlap percentage 0-1 (default: 0.15) */
   overlapPercent: number;
-};
+}
 
 /** Default chunk params */
 export const DEFAULT_CHUNK_PARAMS: ChunkParams = {
@@ -77,7 +77,7 @@ export const DEFAULT_CHUNK_PARAMS: ChunkParams = {
 };
 
 /** Chunked output */
-export type ChunkOutput = {
+export interface ChunkOutput {
   /** Sequence number (0-indexed) */
   seq: number;
   /** Character position in source */
@@ -92,10 +92,10 @@ export type ChunkOutput = {
   language: string | null;
   /** Token count estimate (null for char-based) */
   tokenCount: number | null;
-};
+}
 
 /** Chunker port interface */
-export type ChunkerPort = {
+export interface ChunkerPort {
   /**
    * Chunk markdown content.
    * Returns deterministic chunks for (text, params).
@@ -105,14 +105,14 @@ export type ChunkerPort = {
     params?: ChunkParams,
     documentLanguageHint?: string
   ): ChunkOutput[];
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Sync Types
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Sync options */
-export type SyncOptions = {
+export interface SyncOptions {
   /** Run git pull before scanning */
   gitPull?: boolean;
   /** Run collection updateCmd before scanning */
@@ -129,7 +129,7 @@ export type SyncOptions = {
    * SQLite operations are serialized regardless of this setting.
    */
   concurrency?: number;
-};
+}
 
 /** Per-file sync status */
 export type FileSyncStatus =
@@ -140,17 +140,17 @@ export type FileSyncStatus =
   | 'skipped';
 
 /** Per-file sync result */
-export type FileSyncResult = {
+export interface FileSyncResult {
   relPath: string;
   status: FileSyncStatus;
   docid?: string;
   mirrorHash?: string;
   errorCode?: string;
   errorMessage?: string;
-};
+}
 
 /** Collection sync summary */
-export type CollectionSyncResult = {
+export interface CollectionSyncResult {
   collection: string;
   filesProcessed: number;
   filesAdded: number;
@@ -165,10 +165,10 @@ export type CollectionSyncResult = {
     code: string;
     message: string;
   }>;
-};
+}
 
 /** Full sync summary */
-export type SyncResult = {
+export interface SyncResult {
   collections: CollectionSyncResult[];
   totalDurationMs: number;
   totalFilesProcessed: number;
@@ -176,7 +176,7 @@ export type SyncResult = {
   totalFilesUpdated: number;
   totalFilesErrored: number;
   totalFilesSkipped: number;
-};
+}
 
 /** Decision for whether to process a file */
 export type ProcessDecision =
@@ -189,14 +189,14 @@ export type ProcessDecision =
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Language detector port */
-export type LanguageDetectorPort = {
+export interface LanguageDetectorPort {
   /**
    * Detect language from text.
    * Returns BCP-47 code or null if undetermined.
    * Must be deterministic for same input.
    */
   detect(text: string): string | null;
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helper to create WalkConfig from Collection
