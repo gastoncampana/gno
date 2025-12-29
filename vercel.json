@@ -1,0 +1,16 @@
+{
+  "buildCommand": "cd website && mkdir -p docs && cp ../docs/*.md docs/ && bundle exec jekyll build",
+  "outputDirectory": "website/_site",
+  "installCommand": "cd website && gem install bundler && bundle install",
+  "framework": null,
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "gno.sh" }],
+      "destination": "https://www.gno.sh/:path*",
+      "permanent": true
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+.beads/bd.sock
+node_modules
+.git
+*.sock
