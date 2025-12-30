@@ -127,6 +127,32 @@ Includes: Organization, WebSite, SoftwareApplication, BreadcrumbList, Article/Te
       ]
     }
     {% endif %}
+    {% if page.url contains '/features/' and page.url != '/features/' %}
+    ,{
+      "@type": "BreadcrumbList",
+      "@id": "{{ page_url }}#breadcrumb",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "{{ site.url }}"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Features",
+          "item": "{{ site.url }}/features/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "{{ page_title | escape }}",
+          "item": "{{ page_url }}"
+        }
+      ]
+    }
+    {% endif %}
   ]
 }
 </script>

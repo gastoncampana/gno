@@ -1,9 +1,8 @@
 {% comment %}
-Breadcrumb navigation for documentation pages
-Only shown on /docs/ pages
+Breadcrumb navigation for documentation and feature pages
 {% endcomment %}
 
-{% if page.url contains '/docs/' %}
+{% if page.url contains '/docs/' or page.url contains '/features/' %}
 <nav class="breadcrumbs" aria-label="Breadcrumb">
   <ol class="breadcrumbs-list">
     <li class="breadcrumbs-item">
@@ -15,10 +14,16 @@ Only shown on /docs/ pages
         <span>Home</span>
       </a>
     </li>
+    {% if page.url contains '/docs/' %}
     <li class="breadcrumbs-item">
       <a href="{{ '/docs/QUICKSTART/' | relative_url }}" class="breadcrumbs-link">Docs</a>
     </li>
-    {% if page.title %}
+    {% elsif page.url contains '/features/' and page.url != '/features/' %}
+    <li class="breadcrumbs-item">
+      <a href="{{ '/features/' | relative_url }}" class="breadcrumbs-link">Features</a>
+    </li>
+    {% endif %}
+    {% if page.title and page.url != '/features/' %}
     <li class="breadcrumbs-item breadcrumbs-current" aria-current="page">
       <span>{{ page.title }}</span>
     </li>
