@@ -244,14 +244,7 @@ GNO supports 30+ languages with automatic detection.
 
 ### Setup Language Hints
 
-For collections in a specific language, set `languageHint`:
-
-```bash
-gno collection add ~/docs/german --name de-docs --language de
-gno collection add ~/docs/french --name fr-docs --language fr
-```
-
-Or in config:
+For collections in a specific language, set `languageHint` in config:
 
 ```yaml
 collections:

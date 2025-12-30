@@ -342,13 +342,12 @@ Remove installed skill.
 ```bash
 gno skill uninstall
 gno skill uninstall --scope user
-gno skill uninstall --target all --scope all
+gno skill uninstall --target all
 ```
 
 Options:
-- `--scope <project|user|all>` - Scope to uninstall from
-- `--target <claude|codex|all>` - Target to uninstall from
-- `--file <name>` - Remove specific file only
+- `-s, --scope <project|user>` - Scope to uninstall from (default: project)
+- `-t, --target <claude|codex|all>` - Target to uninstall from (default: claude)
 
 ### gno skill show
 
@@ -357,7 +356,12 @@ Preview skill files without installing.
 ```bash
 gno skill show
 gno skill show --file SKILL.md
+gno skill show --all
 ```
+
+Options:
+- `--file <name>` - Show specific file only
+- `--all` - Show all skill files
 
 ### gno skill paths
 

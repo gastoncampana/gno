@@ -75,7 +75,7 @@ gno doctor
 | BM25 search | None (works everywhere) | `gno search <query>` |
 | Vector search | sqlite-vec extension | `gno vsearch <query>` |
 | Hybrid search | sqlite-vec + embed model | `gno query <query>` |
-| Reranking | rerank model cached | `--rerank` flag |
+| Reranking | rerank model cached | `gno query` (auto-enabled) |
 | AI answers | gen model cached | `gno ask <query> --answer` |
 
 ## Model Setup (Optional)
