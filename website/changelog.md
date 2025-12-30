@@ -14,11 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2025-12-30
+
 ### Added
 - MCP server with stdio transport for AI assistant integration
 - Tools: `gno_search`, `gno_vsearch`, `gno_query`, `gno_get`, `gno_multi_get`, `gno_status`
 - Resources: `gno://{collection}/{path}` document access
 - Plan for `gno mcp install` auto-configuration command
+- Website: punchy tagline, 8 features in bento grid, theme-aware terminal glow
 
 ## [0.1.0] - 2025-12-30
 
@@ -63,7 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Mirror Cache** - Converted document caching for fast re-indexing
 
 #### AI/ML Integration
-- **Local Embeddings** - ONNX models via Transformers.js (no API keys)
+- **Local Embeddings** - GGUF models via node-llama-cpp (no API keys)
 - **Model Presets** - slim (~1GB), balanced (~2GB), quality (~2.5GB)
 - **Reranker Models** - Cross-encoder scoring for result quality
 - **LLM Abstraction** - Pluggable providers (Anthropic, OpenAI, Ollama)
@@ -92,6 +95,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| 0.2.0 | 2025-12-30 | MCP server for AI assistant integration |
 | 0.1.0 | 2025-12-30 | Initial release with full search pipeline |
 
 [View on GitHub](https://github.com/gmickel/gno/blob/main/CHANGELOG.md)
