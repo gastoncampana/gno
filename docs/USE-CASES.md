@@ -53,7 +53,7 @@ gno update
 gno search "authentication endpoint"
 
 # Find code examples
-gno search "handleError" --lang typescript
+gno search "handleError"
 
 # Cross-reference docs and code
 gno query "how does the auth flow work"
