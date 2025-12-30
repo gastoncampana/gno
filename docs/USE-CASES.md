@@ -2,6 +2,59 @@
 
 Real-world workflows for common scenarios.
 
+## The Second Brain Problem
+
+You've built a personal knowledge base. Maybe it's Obsidian, maybe it's thousands of markdown files across folders. 15,000 documents of notes, journals, meeting logs, ideas, and reference material accumulated over years.
+
+The dream: hook it up to your AI assistant. Ask Claude "have I worked on something like this before?" and get a real answer grounded in your actual notes.
+
+The reality with existing tools: search is terrible. Obsidian MCP servers find nothing useful. Keyword search misses conceptual matches. Your second brain is locked away.
+
+### GNO Fixes This
+
+```bash
+# Index your entire Obsidian vault
+gno init ~/Documents/Obsidian --name vault --pattern "**/*.md"
+gno update
+
+# Hook up to Claude Desktop (see MCP.md)
+# Or install as a skill for Claude Code
+gno skill install --scope user
+```
+
+Now your AI can actually search your knowledge:
+
+> "Have I written about authentication patterns before?"
+
+> "Find my notes from the last time I set up a CI pipeline"
+
+> "What did I decide about the database schema for that side project?"
+
+### Combine With Everything Else
+
+GNO becomes one tool in your AI assistant's toolkit. Combine it with:
+
+- **Email MCP** - "Check my emails from Sarah and cross-reference with my project notes"
+- **Calendar MCP** - "What meetings do I have tomorrow? Pull up my notes on those topics"
+- **Custom skills** - "Fetch today's emails, summarize them, and check if any relate to open items in my notes"
+
+The workflow becomes:
+1. Claude reads your email
+2. Claude searches your notes for context
+3. Claude drafts a response with full background
+
+All local. All private. Your data never leaves your machine.
+
+### Why GNO Works Where Others Fail
+
+- **Hybrid search** - BM25 for exact terms + vectors for concepts
+- **Scales to 15,000+ files** - SQLite + FTS5 handles it
+- **Query expansion** - LLM rewrites your question for better matches
+- **Reranking** - Cross-encoder picks the truly relevant results
+- **MCP standard** - Works with Claude Desktop, Cursor, any MCP client
+
+Your second brain finally becomes accessible.
+
 ## Personal Notes
 
 Index and search your note-taking system.
