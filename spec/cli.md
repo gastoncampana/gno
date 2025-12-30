@@ -72,6 +72,10 @@ Default output is human-readable terminal format.
 | cleanup | no | no | no | no | no | terminal |
 | doctor | yes | no | no | yes | no | terminal |
 | mcp | no | no | no | no | no | stdio |
+| skill install | yes | no | no | no | no | terminal |
+| skill uninstall | yes | no | no | no | no | terminal |
+| skill show | no | no | no | no | no | terminal |
+| skill paths | yes | no | no | no | no | terminal |
 
 ---
 
@@ -82,7 +86,7 @@ Default output is human-readable terminal format.
 Display index status and health information.
 
 **Synopsis:**
-```
+```bash
 gno status [--json|--md]
 ```
 
@@ -114,7 +118,7 @@ gno status [--json|--md]
 Initialize GNO configuration and index database. Safe to run repeatedly (idempotent).
 
 **Synopsis:**
-```
+```bash
 gno init [<path>] [--name <name>] [--pattern <glob>] [--include <csv-ext>] [--exclude <csv>] [--update <cmd>] [--tokenizer <type>] [--language <code>] [--yes]
 ```
 
@@ -172,7 +176,7 @@ gno init ~/docs/german --name german --language de
 Add a new collection to the index.
 
 **Synopsis:**
-```
+```bash
 gno collection add <path> --name <name> [--pattern <glob>] [--include <csv-ext>] [--exclude <csv>] [--update <cmd>] [--language <code>]
 ```
 
@@ -209,7 +213,7 @@ gno collection add ~/work/docs --name work --pattern "**/*.{md,pdf,docx}"
 List all configured collections.
 
 **Synopsis:**
-```
+```bash
 gno collection list [--json|--md]
 ```
 
@@ -237,7 +241,7 @@ gno collection list [--json|--md]
 Remove a collection from the index.
 
 **Synopsis:**
-```
+```bash
 gno collection remove <name>
 ```
 
@@ -261,7 +265,7 @@ gno collection remove <name>
 Rename a collection.
 
 **Synopsis:**
-```
+```bash
 gno collection rename <old> <new>
 ```
 
@@ -282,7 +286,7 @@ gno collection rename <old> <new>
 Sync files from disk into the index (ingestion without embedding).
 
 **Synopsis:**
-```
+```bash
 gno update [--git-pull]
 ```
 
@@ -310,7 +314,7 @@ gno update [--git-pull]
 Build or update the index end-to-end (update + embed).
 
 **Synopsis:**
-```
+```bash
 gno index [--collection <name>] [--no-embed] [--models-pull] [--git-pull] [--yes]
 ```
 
@@ -351,7 +355,7 @@ gno index --models-pull --yes
 Generate embeddings for chunks without vectors.
 
 **Synopsis:**
-```
+```bash
 gno embed [--force] [--model <uri>] [--batch-size <n>] [--dry-run] [--yes] [--json]
 ```
 
@@ -388,7 +392,7 @@ gno embed [--force] [--model <uri>] [--batch-size <n>] [--dry-run] [--yes] [--js
 BM25 keyword search over indexed documents.
 
 **Synopsis:**
-```
+```bash
 gno search <query> [-n <num>] [--min-score <num>] [-c <collection>] [--full] [--line-numbers] [--lang <bcp47>] [--json|--files|--csv|--md|--xml]
 ```
 
@@ -441,7 +445,7 @@ gno search "contract" --json | jq '.[] | .uri'
 Vector semantic search over indexed documents.
 
 **Synopsis:**
-```
+```bash
 gno vsearch <query> [-n <num>] [--min-score <num>] [-c <collection>] [--full] [--line-numbers] [--lang <bcp47>] [--json|--files|--csv|--md|--xml]
 ```
 
@@ -467,7 +471,7 @@ Cosine distance (0=identical, 2=opposite) is converted: `score = 1 - (distance /
 Hybrid search combining BM25 and vector retrieval with optional expansion and reranking.
 
 **Synopsis:**
-```
+```bash
 gno query <query> [-n <num>] [--min-score <num>] [-c <collection>] [--full] [--line-numbers] [--lang <bcp47>] [--no-expand] [--no-rerank] [--explain] [--json|--files|--csv|--md|--xml]
 ```
 
@@ -500,7 +504,7 @@ gno query <query> [-n <num>] [--min-score <num>] [-c <collection>] [--full] [--l
 Human-friendly query with citations-first output and optional grounded answer.
 
 **Synopsis:**
-```
+```bash
 gno ask <query> [-n <num>] [-c <collection>] [--lang <bcp47>] [--answer] [--no-answer] [--max-answer-tokens <n>] [--show-sources] [--json|--md]
 ```
 
@@ -533,7 +537,7 @@ gno ask "termination clause" --collection work --answer
 Retrieve a single document by reference.
 
 **Synopsis:**
-```
+```bash
 gno get <ref> [--from <line>] [-l <lines>] [--line-numbers] [--source] [--json|--md]
 ```
 
@@ -578,7 +582,7 @@ gno get work/doc.md:120 -l 50
 Retrieve multiple documents by pattern or list.
 
 **Synopsis:**
-```
+```bash
 gno multi-get <pattern-or-list> [--max-bytes <n>] [--line-numbers] [--json|--files|--md]
 ```
 
@@ -608,7 +612,7 @@ See [Output Schemas](./output-schemas/multi-get.schema.json)
 List documents in a collection or prefix.
 
 **Synopsis:**
-```
+```bash
 gno ls [<scope>] [--json|--files|--md]
 ```
 
@@ -641,7 +645,7 @@ gno ls [<scope>] [--json|--files|--md]
 Add context metadata for a scope.
 
 **Synopsis:**
-```
+```bash
 gno context add <scope> "<text>"
 ```
 
@@ -669,7 +673,7 @@ gno context add gno://work/contracts "Legal contracts and NDAs"
 List all configured contexts.
 
 **Synopsis:**
-```
+```bash
 gno context list [--json|--md]
 ```
 
@@ -688,7 +692,7 @@ gno context list [--json|--md]
 Validate context configuration.
 
 **Synopsis:**
-```
+```bash
 gno context check [--json|--md]
 ```
 
@@ -708,7 +712,7 @@ gno context check [--json|--md]
 Remove a context.
 
 **Synopsis:**
-```
+```bash
 gno context rm <scope>
 ```
 
@@ -723,7 +727,7 @@ gno context rm <scope>
 List configured and available models.
 
 **Synopsis:**
-```
+```bash
 gno models list [--json|--md]
 ```
 
@@ -749,7 +753,7 @@ gno models list [--json|--md]
 Switch active model preset.
 
 **Synopsis:**
-```
+```bash
 gno models use <preset>
 ```
 
@@ -776,7 +780,7 @@ gno models use <preset>
 Download models to local cache.
 
 **Synopsis:**
-```
+```bash
 gno models pull [--all|--embed|--rerank|--gen] [--force]
 ```
 
@@ -804,7 +808,7 @@ gno models pull [--all|--embed|--rerank|--gen] [--force]
 Remove cached models.
 
 **Synopsis:**
-```
+```bash
 gno models clear [--all|--embed|--rerank|--gen]
 ```
 
@@ -815,7 +819,7 @@ gno models clear [--all|--embed|--rerank|--gen]
 Print model cache directory.
 
 **Synopsis:**
-```
+```bash
 gno models path [--json]
 ```
 
@@ -831,7 +835,7 @@ gno models path [--json]
 Remove orphaned content, chunks, and vectors not referenced by active documents.
 
 **Synopsis:**
-```
+```bash
 gno cleanup
 ```
 
@@ -846,7 +850,7 @@ gno cleanup
 Diagnose configuration and dependencies.
 
 **Synopsis:**
-```
+```bash
 gno doctor [--json|--md]
 ```
 
@@ -876,7 +880,7 @@ gno doctor [--json|--md]
 Start MCP server over stdio.
 
 **Synopsis:**
-```
+```bash
 gno mcp
 ```
 
@@ -888,6 +892,146 @@ gno mcp
 **Exit Codes:**
 - 0: Clean shutdown
 - 2: Initialization failure
+
+---
+
+### gno skill install
+
+Install GNO agent skill for Claude Code or Codex.
+
+**Synopsis:**
+```bash
+gno skill install [--scope <project|user>] [--target <claude|codex|all>] [--force] [--json]
+```
+
+**Options:**
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--scope` | string | project | `project` (.claude/skills/) or `user` (~/.claude/skills/) |
+| `--target` | string | claude | `claude`, `codex`, or `all` |
+| `--force` | boolean | false | Overwrite existing skill without prompting |
+
+**Behavior:**
+1. Resolves target path based on scope and target
+2. If skill exists and not `--force`/`--yes`: error
+3. Atomically installs skill directory (temp + rename)
+4. Copies SKILL.md and reference files
+
+**Output (JSON):**
+```json
+{
+  "installed": [
+    { "target": "claude", "scope": "project", "path": ".claude/skills/gno" }
+  ]
+}
+```
+
+**Exit Codes:**
+- 0: Success
+- 1: Skill already exists (without --force)
+- 2: IO failure
+
+**Examples:**
+```bash
+# Install to current project for Claude Code
+gno skill install
+
+# Install globally for all agents
+gno skill install --scope user --target all
+
+# Force reinstall
+gno skill install --force
+```
+
+---
+
+### gno skill uninstall
+
+Remove GNO agent skill.
+
+**Synopsis:**
+```bash
+gno skill uninstall [--scope <project|user>] [--target <claude|codex|all>] [--json]
+```
+
+**Options:** Same as `skill install` (except `--force`)
+
+**Safety Checks:**
+- Validates path ends with `/skills/gno` before removal
+- Rejects paths that don't match expected structure
+- Uses atomic removal with retry for Windows compatibility
+
+**Output (JSON):**
+```json
+{
+  "uninstalled": [
+    { "target": "claude", "scope": "project", "path": ".claude/skills/gno" }
+  ]
+}
+```
+
+**Exit Codes:**
+- 0: Success
+- 1: Skill not found
+- 2: IO failure or safety check failed
+
+---
+
+### gno skill show
+
+Preview skill files without installing.
+
+**Synopsis:**
+```bash
+gno skill show [--file <name>] [--all]
+```
+
+**Options:**
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--file` | string | SKILL.md | File to show: SKILL.md, cli-reference.md, mcp-reference.md, examples.md |
+| `--all` | boolean | false | Show all files with separators |
+
+**Behavior:**
+- Outputs file content to stdout
+- Lists available files at end
+
+**Exit Codes:**
+- 0: Success
+- 1: Invalid file name
+
+**Examples:**
+```bash
+gno skill show
+gno skill show --file cli-reference.md
+gno skill show --all
+```
+
+---
+
+### gno skill paths
+
+Show resolved skill installation paths.
+
+**Synopsis:**
+```bash
+gno skill paths [--scope <project|user>] [--target <claude|codex|all>] [--json]
+```
+
+**Options:** Same as `skill install`
+
+**Output (JSON):**
+```json
+{
+  "paths": [
+    { "target": "claude", "scope": "project", "path": "/path/to/.claude/skills/gno", "exists": false },
+    { "target": "claude", "scope": "user", "path": "/home/user/.claude/skills/gno", "exists": true }
+  ]
+}
+```
+
+**Exit Codes:**
+- 0: Success
 
 ---
 
@@ -917,6 +1061,9 @@ Error codes match exit codes: `VALIDATION` (exit 1), `RUNTIME` (exit 2).
 | `GNO_DATA_DIR` | Override data directory (DB location) |
 | `GNO_CACHE_DIR` | Override cache directory (models) |
 | `NO_COLOR` | Disable colored output (standard) |
+| `GNO_SKILLS_HOME_OVERRIDE` | Override home dir for skill user scope (testing) |
+| `CLAUDE_SKILLS_DIR` | Override Claude skills directory |
+| `CODEX_SKILLS_DIR` | Override Codex skills directory |
 
 ---
 

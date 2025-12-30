@@ -148,6 +148,7 @@ export function createProgram(): Command {
   wireManagementCommands(program);
   wireRetrievalCommands(program);
   wireMcpCommand(program);
+  wireSkillCommands(program);
 
   // Add docs/support links to help footer
   program.addHelpText(
@@ -1010,5 +1011,153 @@ function wireManagementCommands(program: Command): void {
         keepCache: Boolean(cmdOpts.keepCache),
       });
       process.stdout.write(`${formatReset(result)}\n`);
+    });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Skill Commands (install, uninstall, show, paths)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function wireSkillCommands(program: Command): void {
+  const skillCmd = program
+    .command('skill')
+    .description('Manage GNO agent skill');
+
+  skillCmd
+    .command('install')
+    .description('Install GNO skill to Claude Code or Codex')
+    .option(
+      '-s, --scope <scope>',
+      'installation scope (project, user)',
+      'project'
+    )
+    .option(
+      '-t, --target <target>',
+      'target agent (claude, codex, all)',
+      'claude'
+    )
+    .option('-f, --force', 'overwrite existing installation')
+    .option('--json', 'JSON output')
+    .action(async (cmdOpts: Record<string, unknown>) => {
+      const scope = cmdOpts.scope as string;
+      const target = cmdOpts.target as string;
+
+      // Validate scope
+      if (!['project', 'user'].includes(scope)) {
+        throw new CliError(
+          'VALIDATION',
+          `Invalid scope: ${scope}. Must be 'project' or 'user'.`
+        );
+      }
+      // Validate target
+      if (!['claude', 'codex', 'all'].includes(target)) {
+        throw new CliError(
+          'VALIDATION',
+          `Invalid target: ${target}. Must be 'claude', 'codex', or 'all'.`
+        );
+      }
+
+      const { installSkill } = await import('./commands/skill/install.js');
+      await installSkill({
+        scope: scope as 'project' | 'user',
+        target: target as 'claude' | 'codex' | 'all',
+        force: Boolean(cmdOpts.force),
+        json: Boolean(cmdOpts.json),
+      });
+    });
+
+  skillCmd
+    .command('uninstall')
+    .description('Uninstall GNO skill')
+    .option(
+      '-s, --scope <scope>',
+      'installation scope (project, user)',
+      'project'
+    )
+    .option(
+      '-t, --target <target>',
+      'target agent (claude, codex, all)',
+      'claude'
+    )
+    .option('--json', 'JSON output')
+    .action(async (cmdOpts: Record<string, unknown>) => {
+      const scope = cmdOpts.scope as string;
+      const target = cmdOpts.target as string;
+
+      // Validate scope
+      if (!['project', 'user'].includes(scope)) {
+        throw new CliError(
+          'VALIDATION',
+          `Invalid scope: ${scope}. Must be 'project' or 'user'.`
+        );
+      }
+      // Validate target
+      if (!['claude', 'codex', 'all'].includes(target)) {
+        throw new CliError(
+          'VALIDATION',
+          `Invalid target: ${target}. Must be 'claude', 'codex', or 'all'.`
+        );
+      }
+
+      const { uninstallSkill } = await import('./commands/skill/uninstall.js');
+      await uninstallSkill({
+        scope: scope as 'project' | 'user',
+        target: target as 'claude' | 'codex' | 'all',
+        json: Boolean(cmdOpts.json),
+      });
+    });
+
+  skillCmd
+    .command('show')
+    .description('Preview skill files without installing')
+    .option('--file <name>', 'specific file to show')
+    .option('--all', 'show all skill files')
+    .action(async (cmdOpts: Record<string, unknown>) => {
+      const { showSkill } = await import('./commands/skill/show.js');
+      await showSkill({
+        file: cmdOpts.file as string | undefined,
+        all: Boolean(cmdOpts.all),
+      });
+    });
+
+  skillCmd
+    .command('paths')
+    .description('Show resolved skill installation paths')
+    .option(
+      '-s, --scope <scope>',
+      'filter by scope (project, user, all)',
+      'all'
+    )
+    .option(
+      '-t, --target <target>',
+      'filter by target (claude, codex, all)',
+      'all'
+    )
+    .option('--json', 'JSON output')
+    .action(async (cmdOpts: Record<string, unknown>) => {
+      const scope = cmdOpts.scope as string;
+      const target = cmdOpts.target as string;
+
+      // Validate scope
+      if (!['project', 'user', 'all'].includes(scope)) {
+        throw new CliError(
+          'VALIDATION',
+          `Invalid scope: ${scope}. Must be 'project', 'user', or 'all'.`
+        );
+      }
+      // Validate target
+      if (!['claude', 'codex', 'all'].includes(target)) {
+        throw new CliError(
+          'VALIDATION',
+          `Invalid target: ${target}. Must be 'claude', 'codex', or 'all'.`
+        );
+      }
+
+      const { showPaths } = await import('./commands/skill/paths-cmd.js');
+      await showPaths({
+        scope: scope as 'project' | 'user' | 'all',
+        target: target as 'claude' | 'codex' | 'all',
+        json: Boolean(cmdOpts.json),
+      });
     });
 }
