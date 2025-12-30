@@ -73,6 +73,8 @@ export class SqliteAdapter implements StorePort, SqliteDbProvider {
   private dbPath = '';
   private ftsTokenizer: FtsTokenizer = 'unicode61';
   private configPath = ''; // Set by CLI layer for status output
+  private txDepth = 0; // Transaction nesting depth
+  private txCounter = 0; // Savepoint counter for unique names
 
   // ─────────────────────────────────────────────────────────────────────────
   // Lifecycle
@@ -88,9 +90,18 @@ export class SqliteAdapter implements StorePort, SqliteDbProvider {
       this.ftsTokenizer = ftsTokenizer;
 
       // Enable pragmas for performance and safety
-      this.db.exec('PRAGMA journal_mode = WAL');
       this.db.exec('PRAGMA foreign_keys = ON');
       this.db.exec('PRAGMA busy_timeout = 5000');
+
+      // CI mode: trade durability for speed (no fsync, memory journal)
+      // Safe for tests since we don't need crash recovery
+      if (process.env.CI) {
+        this.db.exec('PRAGMA journal_mode = MEMORY');
+        this.db.exec('PRAGMA synchronous = OFF');
+        this.db.exec('PRAGMA temp_store = MEMORY');
+      } else {
+        this.db.exec('PRAGMA journal_mode = WAL');
+      }
 
       // Run migrations
       const result = runMigrations(this.db, migrations, ftsTokenizer);
@@ -117,6 +128,58 @@ export class SqliteAdapter implements StorePort, SqliteDbProvider {
 
   isOpen(): boolean {
     return this.db !== null;
+  }
+
+  /**
+   * Run an async function within a single SQLite transaction.
+   * Uses SAVEPOINT for nesting safety.
+   *
+   * Note: bun:sqlite's Database#transaction is synchronous, so we use
+   * explicit BEGIN/COMMIT to support async callbacks.
+   */
+  async withTransaction<T>(fn: () => Promise<T>): Promise<StoreResult<T>> {
+    const db = this.ensureOpen();
+
+    const isOuter = this.txDepth === 0;
+    const savepoint = `sp_${++this.txCounter}`;
+
+    try {
+      if (isOuter) {
+        // IMMEDIATE reduces lock churn for bulk writes
+        db.exec('BEGIN IMMEDIATE');
+      } else {
+        db.exec(`SAVEPOINT ${savepoint}`);
+      }
+
+      this.txDepth += 1;
+      const value = await fn();
+      this.txDepth -= 1;
+
+      if (isOuter) {
+        db.exec('COMMIT');
+      } else {
+        db.exec(`RELEASE ${savepoint}`);
+      }
+
+      return ok(value);
+    } catch (cause) {
+      this.txDepth = Math.max(0, this.txDepth - 1);
+
+      try {
+        if (isOuter) {
+          db.exec('ROLLBACK');
+        } else {
+          db.exec(`ROLLBACK TO ${savepoint}`);
+          db.exec(`RELEASE ${savepoint}`);
+        }
+      } catch {
+        // Ignore rollback failures; report original error
+      }
+
+      const message =
+        cause instanceof Error ? cause.message : 'Transaction failed';
+      return err('TRANSACTION_FAILED', message, cause);
+    }
   }
 
   /**
