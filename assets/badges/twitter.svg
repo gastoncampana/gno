@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="130" height="28" viewBox="0 0 130 28">
+  <defs>
+    <linearGradient id="bg2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e"/>
+      <stop offset="100%" style="stop-color:#0f0f1a"/>
+    </linearGradient>
+    <filter id="glow2">
+      <feGaussianBlur stdDeviation="0.5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="130" height="28" rx="6" fill="url(#bg2)"/>
+  <rect x="1" y="1" width="128" height="26" rx="5" fill="none" stroke="#2dd4bf" stroke-opacity="0.3"/>
+  <!-- X logo -->
+  <g transform="translate(10, 7)" fill="#e2e8f0">
+    <path d="M10.5 1.5L6.75 6.5L10.75 12.5H8.5L5.75 8.5L2.5 12.5H0.25L4.25 7L0.5 1.5H2.75L5.25 5.25L8.25 1.5H10.5Z" transform="scale(1.1)"/>
+  </g>
+  <text x="32" y="18" font-family="ui-monospace,SFMono-Regular,Menlo,Monaco,monospace" font-size="12" font-weight="500" fill="#e2e8f0" filter="url(#glow2)">@gmickel</text>
+</svg>

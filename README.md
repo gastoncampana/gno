@@ -4,6 +4,8 @@
 
 [![npm version](https://img.shields.io/npm/v/@gmickel/gno.svg)](https://www.npmjs.com/package/@gmickel/gno)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+[![Website](./assets/badges/website.svg)](https://gno.sh)
+[![Twitter](./assets/badges/twitter.svg)](https://twitter.com/gmickel)
 
 GNO is a local knowledge engine for privacy-conscious individuals and AI agents. Index your notes, code, PDFs, and Office docs. Get lightning-fast semantic search and AI-powered answers—all on your machine.
 
