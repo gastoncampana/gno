@@ -72,6 +72,9 @@ Default output is human-readable terminal format.
 | cleanup | no | no | no | no | no | terminal |
 | doctor | yes | no | no | yes | no | terminal |
 | mcp | no | no | no | no | no | stdio |
+| mcp install | yes | no | no | no | no | terminal |
+| mcp uninstall | yes | no | no | no | no | terminal |
+| mcp status | yes | no | no | no | no | terminal |
 | skill install | yes | no | no | no | no | terminal |
 | skill uninstall | yes | no | no | no | no | terminal |
 | skill show | no | no | no | no | no | terminal |
@@ -128,6 +131,7 @@ gno init [<path>] [--name <name>] [--pattern <glob>] [--include <csv-ext>] [--ex
 | `<path>` | string | Optional root directory to add as a collection |
 
 **Options:**
+
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `--name` | string | dirname | Collection name (required if path given) |
@@ -186,6 +190,7 @@ gno collection add <path> --name <name> [--pattern <glob>] [--include <csv-ext>]
 | `<path>` | string | Absolute path to collection root directory |
 
 **Options:**
+
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `--name` | string | required | Unique collection identifier |
@@ -360,6 +365,7 @@ gno embed [--force] [--model <uri>] [--batch-size <n>] [--dry-run] [--yes] [--js
 ```
 
 **Options:**
+
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `--force` | boolean | false | Re-embed all chunks (ignore existing vectors) |
@@ -402,6 +408,7 @@ gno search <query> [-n <num>] [--min-score <num>] [-c <collection>] [--full] [--
 | `<query>` | string | Search query |
 
 **Options:**
+
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `-n` | integer | 5 (20 for --json/--files) | Max results |
@@ -509,6 +516,7 @@ gno ask <query> [-n <num>] [-c <collection>] [--lang <bcp47>] [--answer] [--no-a
 ```
 
 **Options:**
+
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `--answer` | boolean | false | Generate short grounded answer |
@@ -592,6 +600,7 @@ gno multi-get <pattern-or-list> [--max-bytes <n>] [--line-numbers] [--json|--fil
 | `<pattern-or-list>` | string | Glob pattern, comma-separated refs, or docid list |
 
 **Options:**
+
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `--max-bytes` | integer | 10240 | Max bytes per document (truncate with warning) |
@@ -895,6 +904,220 @@ gno mcp
 
 ---
 
+### gno mcp install
+
+Install gno as an MCP server in client configurations.
+
+**Synopsis:**
+```bash
+gno mcp install [--target <target>] [--scope <scope>] [--force] [--dry-run] [--json]
+```
+
+**Options:**
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--target` | string | claude-desktop | Target client (see table below) |
+| `--scope` | string | user | Scope: `user` or `project` (project only for some targets) |
+| `--force` | boolean | false | Overwrite existing gno configuration |
+| `--dry-run` | boolean | false | Show what would be done without changes |
+
+**Targets:**
+
+| Value | Description | Project Scope |
+|-------|-------------|---------------|
+| `claude-desktop` | Claude Desktop app (default) | No |
+| `claude-code` | Claude Code CLI | Yes |
+| `codex` | OpenAI Codex CLI | Yes |
+| `cursor` | Cursor editor | Yes |
+| `zed` | Zed editor | No |
+| `windsurf` | Windsurf IDE | No |
+| `opencode` | OpenCode CLI | Yes |
+| `amp` | Amp (Sourcegraph) | No |
+| `lmstudio` | LM Studio | No |
+| `librechat` | LibreChat | Yes (project only) |
+
+**Config Locations:**
+
+| Target | Scope | macOS | Windows | Linux |
+|--------|-------|-------|---------|-------|
+| claude-desktop | user | `~/Library/Application Support/Claude/claude_desktop_config.json` | `%APPDATA%\Claude\claude_desktop_config.json` | `~/.config/Claude/claude_desktop_config.json` |
+| claude-code | user | `~/.claude.json` | `~/.claude.json` | `~/.claude.json` |
+| claude-code | project | `./.mcp.json` | `./.mcp.json` | `./.mcp.json` |
+| codex | user | `~/.codex.json` | `~/.codex.json` | `~/.codex.json` |
+| codex | project | `./.codex/.mcp.json` | `./.codex/.mcp.json` | `./.codex/.mcp.json` |
+| cursor | user | `~/.cursor/mcp.json` | `~/.cursor/mcp.json` | `~/.cursor/mcp.json` |
+| cursor | project | `./.cursor/mcp.json` | `./.cursor/mcp.json` | `./.cursor/mcp.json` |
+| zed | user | `~/.config/zed/settings.json` | N/A | `~/.config/zed/settings.json` |
+| windsurf | user | `~/.codeium/windsurf/mcp_config.json` | `%APPDATA%\Codeium\windsurf\mcp_config.json` | `~/.codeium/windsurf/mcp_config.json` |
+| opencode | user | `~/.config/opencode/config.json` | `~/.config/opencode/config.json` | `~/.config/opencode/config.json` |
+| opencode | project | `./opencode.json` | `./opencode.json` | `./opencode.json` |
+| amp | user | `~/.config/amp/settings.json` | `~/.config/amp/settings.json` | `~/.config/amp/settings.json` |
+| lmstudio | user | `~/.lmstudio/mcp.json` | `~/.lmstudio/mcp.json` | `~/.lmstudio/mcp.json` |
+| librechat | project | `./librechat.yaml` | `./librechat.yaml` | `./librechat.yaml` |
+
+**Config Formats:**
+- Standard JSON (`mcpServers` key): Claude Desktop, Claude Code, Codex, Cursor, Windsurf, LM Studio
+- Standard YAML (`mcpServers` key): LibreChat
+- Zed: `context_servers` key
+- OpenCode: `mcp` key with array command format
+- Amp: `amp.mcpServers` key
+
+**Behavior:**
+1. Detects bun and gno paths (absolute paths for sandboxed environments)
+2. Reads existing config (creates if missing)
+3. Adds `mcpServers.gno` entry
+4. Creates backup before modifying
+5. Writes atomically via temp file + rename
+
+**Output (JSON):**
+```json
+{
+  "installed": {
+    "target": "claude-desktop",
+    "scope": "user",
+    "configPath": "~/Library/Application Support/Claude/claude_desktop_config.json",
+    "action": "created",
+    "serverEntry": { "command": "/path/to/bun", "args": ["/path/to/gno", "mcp"] }
+  }
+}
+```
+
+**Exit Codes:**
+- 0: Success
+- 1: Already configured (without --force), invalid scope for target
+- 2: Bun not found, gno not found, IO failure
+
+**Examples:**
+```bash
+# Install for Claude Desktop (default)
+gno mcp install
+
+# Install for Cursor
+gno mcp install --target cursor
+
+# Install for Zed
+gno mcp install --target zed
+
+# Install for Claude Code (project scope)
+gno mcp install --target claude-code --scope project
+
+# Force overwrite
+gno mcp install --force
+
+# Preview changes
+gno mcp install --dry-run
+```
+
+---
+
+### gno mcp uninstall
+
+Remove gno MCP server from client configurations.
+
+**Synopsis:**
+```bash
+gno mcp uninstall [--target <target>] [--scope <scope>] [--json]
+```
+
+**Options:**
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--target` | string | claude-desktop | Target client |
+| `--scope` | string | user | Scope |
+
+**Behavior:**
+1. Reads existing config
+2. Removes `mcpServers.gno` entry if present
+3. Creates backup before modifying
+4. Removes empty `mcpServers` object
+5. Preserves other entries
+
+**Output (JSON):**
+```json
+{
+  "uninstalled": {
+    "target": "claude-desktop",
+    "scope": "user",
+    "configPath": "~/Library/Application Support/Claude/claude_desktop_config.json",
+    "action": "removed"
+  }
+}
+```
+
+**Exit Codes:**
+- 0: Success (including if not configured)
+- 1: Invalid scope for target
+- 2: IO failure
+
+---
+
+### gno mcp status
+
+Show MCP server installation status across all targets.
+
+**Synopsis:**
+```bash
+gno mcp status [--target <target>] [--scope <scope>] [--json]
+```
+
+**Options:**
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--target` | string | all | Filter by target (or `all`) |
+| `--scope` | string | all | Filter by scope (or `all`) |
+
+**Output (Terminal):**
+
+```text
+MCP Server Status
+──────────────────────────────────────────────────
+
+✓ Claude Desktop: configured
+    Command: /path/to/bun
+    Args: /path/to/gno mcp
+    Config: ~/Library/Application Support/Claude/claude_desktop_config.json
+
+✗ Claude Code: not configured
+    Config: ~/.claude.json
+
+✗ Claude Code (project): not configured
+    Config: ./.mcp.json
+
+2/5 targets configured
+```
+
+**Output (JSON):**
+```json
+{
+  "targets": [
+    {
+      "target": "claude-desktop",
+      "scope": "user",
+      "configPath": "~/Library/Application Support/Claude/claude_desktop_config.json",
+      "configured": true,
+      "serverEntry": { "command": "/path/to/bun", "args": ["/path/to/gno", "mcp"] }
+    },
+    {
+      "target": "claude-code",
+      "scope": "user",
+      "configPath": "~/.claude.json",
+      "configured": false
+    }
+  ],
+  "summary": { "configured": 1, "total": 5 }
+}
+```
+
+**Exit Codes:**
+- 0: Success
+- 1: Invalid target or scope
+- 2: IO failure
+
+---
+
 ### gno skill install
 
 Install GNO agent skill for Claude Code or Codex.
@@ -905,6 +1128,7 @@ gno skill install [--scope <project|user>] [--target <claude|codex|all>] [--forc
 ```
 
 **Options:**
+
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `--scope` | string | project | `project` (.claude/skills/) or `user` (~/.claude/skills/) |
@@ -987,6 +1211,7 @@ gno skill show [--file <name>] [--all]
 ```
 
 **Options:**
+
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `--file` | string | SKILL.md | File to show: SKILL.md, cli-reference.md, mcp-reference.md, examples.md |

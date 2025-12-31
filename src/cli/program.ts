@@ -704,15 +704,20 @@ function wireRetrievalCommands(program: Command): void {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MCP Command
+// MCP Commands
 // ─────────────────────────────────────────────────────────────────────────────
 
 function wireMcpCommand(program: Command): void {
-  // mcp - Start MCP server (stdio transport)
-  // CRITICAL: helpOption(false) prevents --help from writing to stdout
-  // which would corrupt the JSON-RPC stream
-  program
+  // mcp - Start MCP server (stdio transport) or manage MCP configuration
+  // CRITICAL: helpOption(false) on server command prevents --help from writing
+  // to stdout which would corrupt the JSON-RPC stream
+  const mcpCmd = program
     .command('mcp')
+    .description('MCP server and configuration');
+
+  // Default action: start MCP server
+  mcpCmd
+    .command('serve', { isDefault: true })
     .description('Start MCP server (stdio transport)')
     .helpOption(false)
     .action(async () => {
@@ -720,6 +725,163 @@ function wireMcpCommand(program: Command): void {
       const globalOpts = program.opts();
       const globals = parseGlobalOptions(globalOpts);
       await mcpCommand(globals);
+    });
+
+  // install - Install gno MCP server to client configs
+  mcpCmd
+    .command('install')
+    .description('Install gno as MCP server in client configuration')
+    .option(
+      '-t, --target <target>',
+      'target client (claude-desktop, cursor, zed, windsurf, opencode, amp, lmstudio, librechat, claude-code, codex)',
+      'claude-desktop'
+    )
+    .option(
+      '-s, --scope <scope>',
+      'scope (user, project) - project only for claude-code/codex/cursor/opencode',
+      'user'
+    )
+    .option('-f, --force', 'overwrite existing configuration')
+    .option('--dry-run', 'show what would be done without making changes')
+    .option('--json', 'JSON output')
+    .action(async (cmdOpts: Record<string, unknown>) => {
+      const target = cmdOpts.target as string;
+      const scope = cmdOpts.scope as string;
+
+      // Import MCP_TARGETS for validation
+      const { MCP_TARGETS } = await import('./commands/mcp/paths.js');
+
+      // Validate target
+      if (!(MCP_TARGETS as string[]).includes(target)) {
+        throw new CliError(
+          'VALIDATION',
+          `Invalid target: ${target}. Must be one of: ${MCP_TARGETS.join(', ')}.`
+        );
+      }
+      // Validate scope
+      if (!['user', 'project'].includes(scope)) {
+        throw new CliError(
+          'VALIDATION',
+          `Invalid scope: ${scope}. Must be 'user' or 'project'.`
+        );
+      }
+
+      const { installMcp } = await import('./commands/mcp/install.js');
+      await installMcp({
+        target: target as NonNullable<
+          Parameters<typeof installMcp>[0]
+        >['target'],
+        scope: scope as 'user' | 'project',
+        force: Boolean(cmdOpts.force),
+        dryRun: Boolean(cmdOpts.dryRun),
+        // Pass undefined if not set, so global --json can take effect
+        json: cmdOpts.json === true ? true : undefined,
+      });
+    });
+
+  // uninstall - Remove gno MCP server from client configs
+  mcpCmd
+    .command('uninstall')
+    .description('Remove gno MCP server from client configuration')
+    .option(
+      '-t, --target <target>',
+      'target client (claude-desktop, cursor, zed, windsurf, opencode, amp, lmstudio, librechat, claude-code, codex)',
+      'claude-desktop'
+    )
+    .option('-s, --scope <scope>', 'scope (user, project)', 'user')
+    .option('--json', 'JSON output')
+    .action(async (cmdOpts: Record<string, unknown>) => {
+      const target = cmdOpts.target as string;
+      const scope = cmdOpts.scope as string;
+
+      // Import MCP_TARGETS for validation
+      const { MCP_TARGETS } = await import('./commands/mcp/paths.js');
+
+      // Validate target
+      if (!(MCP_TARGETS as string[]).includes(target)) {
+        throw new CliError(
+          'VALIDATION',
+          `Invalid target: ${target}. Must be one of: ${MCP_TARGETS.join(', ')}.`
+        );
+      }
+      // Validate scope
+      if (!['user', 'project'].includes(scope)) {
+        throw new CliError(
+          'VALIDATION',
+          `Invalid scope: ${scope}. Must be 'user' or 'project'.`
+        );
+      }
+
+      const { uninstallMcp } = await import('./commands/mcp/uninstall.js');
+      await uninstallMcp({
+        target: target as NonNullable<
+          Parameters<typeof uninstallMcp>[0]
+        >['target'],
+        scope: scope as 'user' | 'project',
+        // Pass undefined if not set, so global --json can take effect
+        json: cmdOpts.json === true ? true : undefined,
+      });
+    });
+
+  // status - Show MCP installation status
+  mcpCmd
+    .command('status')
+    .description('Show MCP server installation status')
+    .option(
+      '-t, --target <target>',
+      'filter by target (claude-desktop, cursor, zed, windsurf, opencode, amp, lmstudio, librechat, claude-code, codex, all)',
+      'all'
+    )
+    .option(
+      '-s, --scope <scope>',
+      'filter by scope (user, project, all)',
+      'all'
+    )
+    .option('--json', 'JSON output')
+    .action(async (cmdOpts: Record<string, unknown>) => {
+      const target = cmdOpts.target as string;
+      const scope = cmdOpts.scope as string;
+
+      // Import MCP_TARGETS for validation
+      const { MCP_TARGETS, TARGETS_WITH_PROJECT_SCOPE } = await import(
+        './commands/mcp/paths.js'
+      );
+
+      // Validate target
+      if (target !== 'all' && !(MCP_TARGETS as string[]).includes(target)) {
+        throw new CliError(
+          'VALIDATION',
+          `Invalid target: ${target}. Must be one of: ${MCP_TARGETS.join(', ')}, all.`
+        );
+      }
+      // Validate scope
+      if (!['user', 'project', 'all'].includes(scope)) {
+        throw new CliError(
+          'VALIDATION',
+          `Invalid scope: ${scope}. Must be 'user', 'project', or 'all'.`
+        );
+      }
+      // Validate target/scope combination
+      if (
+        target !== 'all' &&
+        scope === 'project' &&
+        !(TARGETS_WITH_PROJECT_SCOPE as string[]).includes(target)
+      ) {
+        throw new CliError(
+          'VALIDATION',
+          `${target} does not support project scope.`
+        );
+      }
+
+      const { statusMcp } = await import('./commands/mcp/status.js');
+      await statusMcp({
+        target: target as NonNullable<
+          Parameters<typeof statusMcp>[0]
+        >['target'],
+        scope: scope as 'user' | 'project' | 'all',
+        // Pass undefined if not set, so global --json can take effect
+        json: cmdOpts.json === true ? true : undefined,
+      });
     });
 }
 

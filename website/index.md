@@ -15,35 +15,32 @@ Give your local LLM agents (like Claude Desktop or Cursor) a long-term memory. G
 
 ## Agent Integration
 
-Connect GNO to your AI tools instantly.
+Connect GNO to your AI tools instantly:
 
-**Claude Desktop Config** (`~/Library/Application Support/Claude/claude_desktop_config.json`):
-
-```json
-{
-  "mcpServers": {
-    "gno": {
-      "command": "gno",
-      "args": ["mcp"]
-    }
-  }
-}
+```bash
+gno mcp install                    # Claude Desktop (default)
+gno mcp install --target cursor    # Cursor
+gno mcp install --target zed       # Zed
+gno mcp install --target windsurf  # Windsurf
+# ... and 6 more targets
 ```
 
 Once connected, you can ask Claude things like:
 > "Search my local notes for the project roadmap and summarize the Q4 goals."
 
+[Full MCP setup guide →](/docs/MCP/)
+
 ## Quick Start
 
 ```bash
 # Install
-bun install -g gno
+bun install -g @gmickel/gno
 
 # Initialize with your notes folder
 gno init ~/notes --name notes
 
-# Index documents
-gno index --yes
+# Index documents (BM25 + vectors)
+gno index
 
 # Search
 gno query "authentication best practices"

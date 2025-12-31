@@ -19,11 +19,11 @@ This creates your config and sets up the first collection.
 ## 2. Index Your Documents
 
 ```bash
-# Index all configured collections
-gno update
+# Full index: ingest files + generate embeddings
+gno index
 ```
 
-GNO indexes Markdown, PDF, DOCX, XLSX, PPTX, and plain text.
+This runs both BM25 (keyword) and vector indexing. GNO indexes Markdown, PDF, DOCX, XLSX, PPTX, and plain text.
 
 Check what's indexed:
 
@@ -81,16 +81,26 @@ gno search "important" --md
 
 ```bash
 gno collection add ~/work/projects --name projects --pattern "**/*.md"
-gno update
+gno index
 ```
 
 ### Re-Index After Changes
 
 ```bash
+# Full re-index (sync + embeddings)
+gno index
+
+# Or just sync files without re-embedding (faster)
 gno update
 ```
 
-Only changed files are re-indexed.
+**Incremental by default**: GNO tracks file content via SHA-256 hashes. When you run `gno index` or `gno update`:
+
+- **New files** → indexed
+- **Modified files** → re-indexed
+- **Unchanged files** → skipped (instant)
+
+This makes re-indexing fast even for large collections. Just run `gno index` after adding or editing files.
 
 ### Check System Health
 
@@ -116,7 +126,7 @@ gno get <docid>
 ```bash
 # Setup
 gno init ~/notes --name notes
-gno update
+gno index
 
 # Search
 gno search "meeting notes"

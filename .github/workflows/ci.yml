@@ -8,7 +8,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  # Core platforms - always run
   test:
     strategy:
       matrix:
@@ -48,7 +47,6 @@ jobs:
         env:
           CI: 'true'
 
-  # Windows - main, tags, manual, or labeled PRs only
   test-windows:
     if: |
       github.event_name == 'push' ||
