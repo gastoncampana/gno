@@ -3,8 +3,8 @@
 
 version: 2
 updates:
-  # npm/bun dependencies
-  - package-ecosystem: "npm"
+  # Bun dependencies (native support since Feb 2025)
+  - package-ecosystem: "bun"
     directory: "/"
     schedule:
       interval: "weekly"
