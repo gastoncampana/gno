@@ -109,10 +109,12 @@ graph TD
     A[User Query] --> B(Query Expansion)
     B --> C{Lexical Variants}
     B --> D{Semantic Variants}
+    B --> E{HyDE Passage}
     A --> F[Original Query]
 
-    C --> G(BM25 Retrieval)
+    C --> G(BM25 Search)
     D --> H(Vector Search)
+    E --> H
     F --> G
     F --> H
 
@@ -122,14 +124,16 @@ graph TD
     J --> K
 
     K --> L(Top Candidates)
-    L --> M(LLM Re-ranking)
-    M --> N(Final Results)
+    L --> M(Cross-Encoder Rerank)
+    M --> N[Final Results]
 ```
 
-1. **Query Expansion** — Generates lexical/semantic variants via local LLM
-2. **Parallel Retrieval** — BM25 + Vector search run concurrently
-3. **Fusion** — Reciprocal Rank Fusion combines results
-4. **Re-ranking** — Cross-encoder rescores top candidates
+1. **Query Expansion** — LLM generates lexical variants, semantic variants, and [HyDE](https://arxiv.org/abs/2212.10496) passage
+2. **Parallel Retrieval** — BM25 + Vector search run concurrently on all variants
+3. **Fusion** — Reciprocal Rank Fusion merges results with position-based scoring
+4. **Re-ranking** — Cross-encoder rescores top 20, blended with fusion scores
+
+See [How Search Works](https://gno.dev/docs/HOW-SEARCH-WORKS/) for full pipeline details.
 
 ---
 
@@ -170,6 +174,8 @@ bun test
 bun run lint
 bun run typecheck
 ```
+
+See [Contributing](.github/CONTRIBUTING.md) for CI matrix, caching, and release process.
 
 ---
 
