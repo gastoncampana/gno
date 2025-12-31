@@ -23,6 +23,8 @@ website/
 
 Edit docs in `/docs/` (project root), not here. This directory is gitignored.
 
+**Subdirectories**: The `make sync-docs` target copies both top-level `.md` files AND subdirectories (e.g., `comparisons/`, `integrations/`). If you add new subdirectories to `/docs/`, they will be automatically synced.
+
 **CRITICAL**: Only user-facing documentation belongs in `/docs/`:
 - QUICKSTART.md, CLI.md, CONFIGURATION.md, etc.
 - Do NOT add: spikes, plans, internal notes, architecture decisions
