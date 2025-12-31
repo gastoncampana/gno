@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.5] - 2025-12-31
+
+### Changed
+- README: Comprehensive rewrite with full MCP install commands, feature tables, doc links
+- README: Added footer attribution
+
+### Fixed
+- License badge spacing
+
 ## [0.3.4] - 2025-12-31
 
 ### Fixed
@@ -131,9 +140,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| 0.3.5 | 2025-12-31 | README rewrite with comprehensive MCP docs |
+| 0.3.0 | 2025-12-31 | 10 MCP installation targets |
 | 0.2.0 | 2025-12-30 | MCP server for AI assistant integration |
 | 0.1.0 | 2025-12-30 | Initial release with full search pipeline |
 
-[Unreleased]: https://github.com/gmickel/gno/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/gmickel/gno/compare/v0.3.5...HEAD
+[0.3.5]: https://github.com/gmickel/gno/compare/v0.3.4...v0.3.5
+[0.3.4]: https://github.com/gmickel/gno/compare/v0.3.3...v0.3.4
+[0.3.3]: https://github.com/gmickel/gno/compare/v0.3.2...v0.3.3
+[0.3.2]: https://github.com/gmickel/gno/compare/v0.3.1...v0.3.2
+[0.3.1]: https://github.com/gmickel/gno/compare/v0.3.0...v0.3.1
+[0.3.0]: https://github.com/gmickel/gno/compare/v0.2.1...v0.3.0
+[0.2.1]: https://github.com/gmickel/gno/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/gmickel/gno/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/gmickel/gno/releases/tag/v0.1.0
