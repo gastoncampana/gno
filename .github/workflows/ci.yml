@@ -87,6 +87,6 @@ jobs:
 
       - name: Test
         shell: cmd
-        run: bun test
+        run: bun test --bail
         env:
           CI: 'true'
