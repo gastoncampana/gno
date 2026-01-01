@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-01-01
+
+### Added
+- **Web UI** - Local web dashboard via `gno serve`
+  - Dashboard with index stats and collection overview
+  - Search page with BM25/hybrid search modes
+  - Ask page with AI-powered answers and citations
+  - Document viewer with syntax highlighting
+  - Browse collections and documents
+  - Model preset selector with hot-reload
+  - Model download with progress polling
+- **REST API** - Full HTTP API for programmatic access
+  - `/api/search` - BM25 keyword search
+  - `/api/query` - Hybrid search (BM25 + vector)
+  - `/api/ask` - AI answers with citations
+  - `/api/docs`, `/api/doc` - Document listing and retrieval
+  - `/api/presets` - Model preset management
+  - `/api/models/pull` - Model download with progress
+- **Convenience scripts** - `bun run serve` and `bun run serve:dev`
+
+### Changed
+- Extracted answer generation to shared `src/pipeline/answer.ts` module
+- API and CLI now share identical pipeline code
+
 ## [0.3.5] - 2025-12-31
 
 ### Changed
