@@ -26,11 +26,13 @@ grep and ripgrep are excellent for exact pattern matching in code. GNO adds sema
 | **Regex** | Basic patterns | Full regex power |
 | **Pipeline** | JSON output | Native stdin/stdout |
 
+| **REST API** | ✓ `gno serve` | ✗ |
+| **Web UI** | ✓ `gno serve` | ✗ |
+
 ### Planned Features
 
 | Feature | GNO | grep/rg |
 |---------|-----|---------|
-| **Web UI** | ✓ `gno serve` | ✗ |
 | **Tab Completion** | 🔜 Shell integration | ✓ Built-in |
 
 ## The Key Difference

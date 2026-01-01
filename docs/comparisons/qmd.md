@@ -20,7 +20,7 @@ Both tools provide semantic search for local documents with AI-powered features.
 | **Search Modes** | BM25, Vector, Hybrid | BM25, Vector, Hybrid |
 | **Query Expansion** | ✓ LLM-powered | ✓ LLM-powered |
 | **Reranking** | ✓ Cross-encoder | ✓ Cross-encoder |
-| **HyDE** | ✓ | ✗ |
+| **HyDE** | ✓ | ✓ |
 | **AI Answers (RAG)** | ✓ `gno ask --answer` | ✗ |
 | **Languages** | 30+ (auto-detect) | English-focused |
 | **MCP Targets** | 10+ (Claude, Cursor, Zed, Windsurf, etc.) | Claude Desktop only |
@@ -30,11 +30,13 @@ Both tools provide semantic search for local documents with AI-powered features.
 | **Collection Contexts** | ✓ Semantic hints | ✓ |
 | **Output Formats** | JSON, CSV, MD, XML, files | JSON, CSV, MD, XML |
 
+| **REST API** | ✓ `gno serve` | ✗ |
+| **Web UI** | ✓ `gno serve` | ✗ |
+
 ### Planned Features
 
 | Feature | GNO | QMD |
 |---------|-----|-----|
-| **Web UI** | ✓ `gno serve` | ✗ |
 | **Raycast Extension** | 🔜 macOS native GUI | ✗ |
 | **Tab Completion** | 🔜 Shell integration | ✗ |
 

@@ -27,11 +27,13 @@ Elasticsearch is an enterprise-grade distributed search engine. GNO is a local-f
 | **Query DSL** | Simple CLI flags | Complex JSON DSL |
 | **Aggregations** | Basic | Powerful analytics |
 
+| **REST API** | ✓ `gno serve` | ✓ Native |
+| **Web UI** | ✓ `gno serve` | ✓ Kibana |
+
 ### Planned Features
 
 | Feature | GNO | Elasticsearch |
 |---------|-----|---------------|
-| **Web UI** | ✓ `gno serve` | ✓ Kibana |
 | **Raycast Extension** | 🔜 macOS native | ✗ |
 
 ## The Key Difference

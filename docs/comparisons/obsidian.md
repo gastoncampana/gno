@@ -25,11 +25,13 @@ A comparison of GNO with Obsidian's built-in search.
 | **Note Editing** | ✗ | ✓ |
 | **Plugins** | MCP ecosystem | Obsidian plugins |
 
+| **REST API** | ✓ `gno serve` | ✗ |
+| **Web UI** | ✓ `gno serve` | ✓ (Obsidian app) |
+
 ### Planned Features
 
 | Feature | GNO | Obsidian |
 |---------|-----|----------|
-| **Web UI** | ✓ `gno serve` | ✓ (Obsidian app) |
 | **Raycast** | 🔜 macOS native | ✓ (community extension) |
 
 ## Complementary Workflow
