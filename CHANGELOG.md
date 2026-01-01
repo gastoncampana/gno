@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-01-01
+
+### Added
+- **Tiered search modes** - `--fast` (BM25 only, ~0.7s), default (with reranking, ~2-3s), `--thorough` (full pipeline with expansion, ~5-8s)
+- **Chunk-level reranking** - Reranks best chunk per document (4K) instead of full documents, ~25× faster with same quality
+
+### Changed
+- Default search now skips LLM query expansion (faster) but keeps reranking (quality)
+- Refactored rerank pipeline with extracted helper functions for maintainability
+
+### Fixed
+- Properly await `store.close()` in scripts
+- Handle `cleanupAndExit` promises to prevent floating promise warnings
+
 ## [0.5.1] - 2026-01-01
 
 ### Fixed
