@@ -5,6 +5,13 @@ All notable changes to GNO will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2026-01-01
+
+### Added
+- **Auto-download models** - Models download automatically on first use (CLI, MCP, Web UI)
+- **Offline mode** - `--offline` flag and `HF_HUB_OFFLINE`/`GNO_OFFLINE` env vars
+- **Cross-process locking** - Safe concurrent model downloads with stale lock recovery
+
 ## [0.6.0] - 2026-01-01
 
 ### Added
