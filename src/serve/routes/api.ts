@@ -6,7 +6,9 @@
  */
 
 import { modelsPull } from '../../cli/commands/models/pull';
+import { addCollection, removeCollection } from '../../collection';
 import type { Config, ModelPreset } from '../../config/types';
+import { defaultSyncService, type SyncResult } from '../../ingestion';
 import { getModelConfig, getPreset, listPresets } from '../../llm/registry';
 import {
   generateGroundedAnswer,
@@ -16,12 +18,14 @@ import { searchHybrid } from '../../pipeline/hybrid';
 import { searchBm25 } from '../../pipeline/search';
 import type { AskResult, Citation, SearchOptions } from '../../pipeline/types';
 import type { SqliteAdapter } from '../../store/sqlite/adapter';
+import { applyConfigChange } from '../config-sync';
 import {
   downloadState,
   reloadServerContext,
   resetDownloadState,
   type ServerContext,
 } from '../context';
+import { getJobStatus, startJob } from '../jobs';
 
 /** Mutable context holder for hot-reloading presets */
 export interface ContextHolder {
@@ -64,6 +68,27 @@ export interface AskRequestBody {
   collection?: string;
   lang?: string;
   maxAnswerTokens?: number;
+}
+
+export interface CreateCollectionRequestBody {
+  path: string;
+  name?: string;
+  pattern?: string;
+  include?: string;
+  exclude?: string;
+  gitPull?: boolean;
+}
+
+export interface SyncRequestBody {
+  collection?: string;
+  gitPull?: boolean;
+}
+
+export interface CreateDocRequestBody {
+  collection: string;
+  relPath: string;
+  content: string;
+  overwrite?: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -138,6 +163,219 @@ export async function handleCollections(
       path: c.path,
     }))
   );
+}
+
+/**
+ * POST /api/collections
+ * Create a new collection and start sync job.
+ */
+export async function handleCreateCollection(
+  ctxHolder: ContextHolder,
+  store: SqliteAdapter,
+  req: Request
+): Promise<Response> {
+  let body: CreateCollectionRequestBody;
+  try {
+    body = (await req.json()) as CreateCollectionRequestBody;
+  } catch {
+    return errorResponse('VALIDATION', 'Invalid JSON body');
+  }
+
+  // Validate required fields
+  if (!body.path || typeof body.path !== 'string') {
+    return errorResponse('VALIDATION', 'Missing or invalid path');
+  }
+
+  // Validate optional fields have correct types
+  if (body.name !== undefined && typeof body.name !== 'string') {
+    return errorResponse('VALIDATION', 'name must be a string');
+  }
+  if (body.pattern !== undefined && typeof body.pattern !== 'string') {
+    return errorResponse('VALIDATION', 'pattern must be a string');
+  }
+  if (
+    body.include !== undefined &&
+    typeof body.include !== 'string' &&
+    !Array.isArray(body.include)
+  ) {
+    return errorResponse('VALIDATION', 'include must be a string or array');
+  }
+  if (
+    body.exclude !== undefined &&
+    typeof body.exclude !== 'string' &&
+    !Array.isArray(body.exclude)
+  ) {
+    return errorResponse('VALIDATION', 'exclude must be a string or array');
+  }
+  if (body.gitPull !== undefined && typeof body.gitPull !== 'boolean') {
+    return errorResponse('VALIDATION', 'gitPull must be a boolean');
+  }
+
+  // Derive name from path if not provided
+  const { basename } = await import('node:path'); // no bun equivalent
+  const name = body.name || basename(body.path);
+
+  // Persist config and sync to DB (mutation happens inside with fresh config)
+  const syncResult = await applyConfigChange(ctxHolder, store, async (cfg) => {
+    const addResult = await addCollection(cfg, {
+      path: body.path,
+      name,
+      pattern: body.pattern,
+      include: body.include,
+      exclude: body.exclude,
+    });
+
+    if (!addResult.ok) {
+      return { ok: false, error: addResult.message, code: addResult.code };
+    }
+    return { ok: true, config: addResult.config };
+  });
+  if (!syncResult.ok) {
+    // Map mutation error codes to HTTP status codes
+    const statusMap: Record<string, number> = {
+      DUPLICATE: 409,
+      PATH_NOT_FOUND: 400,
+    };
+    const status = statusMap[syncResult.code] ?? 500;
+    return errorResponse(syncResult.code, syncResult.error, status);
+  }
+
+  // Find the newly added collection from config
+  const collection = syncResult.config.collections.find((c) => c.name === name);
+  if (!collection) {
+    return errorResponse('RUNTIME', 'Collection not found after add', 500);
+  }
+  const jobResult = startJob('add', async (): Promise<SyncResult> => {
+    const result = await defaultSyncService.syncCollection(collection, store, {
+      gitPull: body.gitPull,
+      runUpdateCmd: true,
+    });
+    return {
+      collections: [result],
+      totalDurationMs: result.durationMs,
+      totalFilesProcessed: result.filesProcessed,
+      totalFilesAdded: result.filesAdded,
+      totalFilesUpdated: result.filesUpdated,
+      totalFilesErrored: result.filesErrored,
+      totalFilesSkipped: result.filesSkipped,
+    };
+  });
+
+  if (!jobResult.ok) {
+    return errorResponse('CONFLICT', jobResult.error, 409);
+  }
+
+  return jsonResponse(
+    {
+      jobId: jobResult.jobId,
+      collection: collection.name,
+    },
+    202
+  );
+}
+
+/**
+ * DELETE /api/collections/:name
+ * Remove a collection from config.
+ * Note: Does NOT remove indexed documents - they remain in DB until re-sync
+ * or manual cleanup. This preserves data for potential recovery.
+ */
+export async function handleDeleteCollection(
+  ctxHolder: ContextHolder,
+  store: SqliteAdapter,
+  name: string
+): Promise<Response> {
+  // Persist config and sync to DB (mutation happens inside with fresh config)
+  const syncResult = await applyConfigChange(ctxHolder, store, (cfg) => {
+    const removeResult = removeCollection(cfg, { name });
+
+    if (!removeResult.ok) {
+      return {
+        ok: false,
+        error: removeResult.message,
+        code: removeResult.code,
+      };
+    }
+    return { ok: true, config: removeResult.config };
+  });
+
+  if (!syncResult.ok) {
+    // Map mutation error codes to HTTP status codes
+    const statusMap: Record<string, number> = {
+      NOT_FOUND: 404,
+      HAS_REFERENCES: 400,
+    };
+    const status = statusMap[syncResult.code] ?? 500;
+    return errorResponse(syncResult.code, syncResult.error, status);
+  }
+
+  return jsonResponse({
+    success: true,
+    collection: name,
+    note: 'Collection removed from config. Indexed documents remain in DB.',
+  });
+}
+
+/**
+ * POST /api/sync
+ * Trigger re-index of all or specific collection.
+ */
+export async function handleSync(
+  ctxHolder: ContextHolder,
+  store: SqliteAdapter,
+  req: Request
+): Promise<Response> {
+  let body: SyncRequestBody = {};
+  try {
+    const text = await req.text();
+    if (text) {
+      body = JSON.parse(text) as SyncRequestBody;
+    }
+  } catch {
+    return errorResponse('VALIDATION', 'Invalid JSON body');
+  }
+
+  // Validate optional fields
+  if (body.collection !== undefined && typeof body.collection !== 'string') {
+    return errorResponse('VALIDATION', 'collection must be a string');
+  }
+  if (body.gitPull !== undefined && typeof body.gitPull !== 'boolean') {
+    return errorResponse('VALIDATION', 'gitPull must be a boolean');
+  }
+
+  // Get collections to sync (case-insensitive matching)
+  const collectionName = body.collection?.toLowerCase();
+  const collections = collectionName
+    ? ctxHolder.config.collections.filter(
+        (c) => c.name.toLowerCase() === collectionName
+      )
+    : ctxHolder.config.collections;
+
+  if (body.collection && collections.length === 0) {
+    return errorResponse(
+      'NOT_FOUND',
+      `Collection not found: ${body.collection}`,
+      404
+    );
+  }
+
+  if (collections.length === 0) {
+    return errorResponse('VALIDATION', 'No collections to sync');
+  }
+
+  // Start background sync job
+  const jobResult = startJob('sync', async (): Promise<SyncResult> => {
+    return await defaultSyncService.syncAll(collections, store, {
+      gitPull: body.gitPull,
+      runUpdateCmd: true,
+    });
+  });
+
+  if (!jobResult.ok) {
+    return errorResponse('CONFLICT', jobResult.error, 409);
+  }
+
+  return jsonResponse({ jobId: jobResult.jobId }, 202);
 }
 
 /**
@@ -247,6 +485,184 @@ export async function handleDoc(
       sizeBytes: doc.sourceSize,
     },
   });
+}
+
+/**
+ * POST /api/docs/:id/deactivate
+ * Deactivate a document (soft delete - does not remove file from disk).
+ */
+export async function handleDeactivateDoc(
+  store: SqliteAdapter,
+  docId: string
+): Promise<Response> {
+  // Get document to verify it exists and get collection/relPath
+  const docResult = await store.getDocumentByDocid(docId);
+  if (!docResult.ok) {
+    return errorResponse('RUNTIME', docResult.error.message, 500);
+  }
+  if (!docResult.value) {
+    return errorResponse('NOT_FOUND', 'Document not found', 404);
+  }
+
+  const doc = docResult.value;
+
+  // Mark as inactive
+  const result = await store.markInactive(doc.collection, [doc.relPath]);
+  if (!result.ok) {
+    return errorResponse('RUNTIME', result.error.message, 500);
+  }
+
+  return jsonResponse({
+    success: true,
+    docId: doc.docid,
+    path: doc.uri,
+    warning: 'File still exists on disk. Will be re-indexed unless excluded.',
+  });
+}
+
+/**
+ * Validate relative path for document creation.
+ * Returns error message if invalid, null if valid.
+ */
+async function validateRelPath(
+  relPath: string
+): Promise<{ error: string } | { fullPath: string; normalizedPath: string }> {
+  const { normalize, isAbsolute } = await import('node:path');
+  if (isAbsolute(relPath)) {
+    return { error: 'relPath must be relative' };
+  }
+  if (relPath.includes('\0')) {
+    return { error: 'relPath contains invalid characters' };
+  }
+  const normalizedPath = normalize(relPath);
+  if (normalizedPath.startsWith('..')) {
+    return { error: 'relPath cannot escape collection root' };
+  }
+  return { fullPath: '', normalizedPath };
+}
+
+/**
+ * POST /api/docs
+ * Create a new document in a collection.
+ * Returns 202 with jobId for async sync.
+ */
+export async function handleCreateDoc(
+  ctxHolder: ContextHolder,
+  store: SqliteAdapter,
+  req: Request
+): Promise<Response> {
+  let body: CreateDocRequestBody;
+  try {
+    body = (await req.json()) as CreateDocRequestBody;
+  } catch {
+    return errorResponse('VALIDATION', 'Invalid JSON body');
+  }
+
+  // Validate required fields with type checks
+  if (!body.collection || typeof body.collection !== 'string') {
+    return errorResponse('VALIDATION', 'Missing or invalid collection');
+  }
+  if (!body.relPath || typeof body.relPath !== 'string') {
+    return errorResponse('VALIDATION', 'Missing or invalid relPath');
+  }
+  if (!body.content || typeof body.content !== 'string') {
+    return errorResponse('VALIDATION', 'Missing or invalid content');
+  }
+  if (body.overwrite !== undefined && typeof body.overwrite !== 'boolean') {
+    return errorResponse('VALIDATION', 'overwrite must be a boolean');
+  }
+
+  // Find collection (case-insensitive)
+  const collectionName = body.collection.toLowerCase();
+  const collection = ctxHolder.config.collections.find(
+    (c) => c.name.toLowerCase() === collectionName
+  );
+  if (!collection) {
+    return errorResponse(
+      'NOT_FOUND',
+      `Collection not found: ${body.collection}`,
+      404
+    );
+  }
+
+  // Validate relPath - no path traversal
+  const pathValidation = await validateRelPath(body.relPath);
+  if ('error' in pathValidation) {
+    return errorResponse('VALIDATION', pathValidation.error);
+  }
+
+  const { join, dirname } = await import('node:path'); // no bun equivalent
+  const fullPath = join(collection.path, pathValidation.normalizedPath);
+
+  try {
+    // Check if file already exists
+    const file = Bun.file(fullPath);
+    if ((await file.exists()) && !body.overwrite) {
+      return errorResponse(
+        'CONFLICT',
+        'File already exists. Set overwrite=true to replace.',
+        409
+      );
+    }
+
+    // Ensure parent directory exists
+    const parentDir = dirname(fullPath);
+    const { mkdir, rename, unlink } = await import('node:fs/promises'); // structure ops need fs
+    await mkdir(parentDir, { recursive: true });
+
+    // Write file atomically (temp file + rename)
+    const tempPath = `${fullPath}.tmp.${crypto.randomUUID()}`;
+    await Bun.write(tempPath, body.content);
+    try {
+      await rename(tempPath, fullPath);
+    } catch (renameError) {
+      // Clean up temp file on failure
+      await unlink(tempPath).catch(() => {
+        /* ignore cleanup errors */
+      });
+      throw renameError;
+    }
+
+    // Build proper file:// URI using node:url
+    const { pathToFileURL } = await import('node:url');
+    const fileUri = pathToFileURL(fullPath).href;
+
+    // Run sync via job system (non-blocking)
+    const jobResult = startJob('sync', async (): Promise<SyncResult> => {
+      const result = await defaultSyncService.syncCollection(
+        collection,
+        store,
+        { runUpdateCmd: false }
+      );
+      return {
+        collections: [result],
+        totalDurationMs: result.durationMs,
+        totalFilesProcessed: result.filesProcessed,
+        totalFilesAdded: result.filesAdded,
+        totalFilesUpdated: result.filesUpdated,
+        totalFilesErrored: result.filesErrored,
+        totalFilesSkipped: result.filesSkipped,
+      };
+    });
+
+    return jsonResponse(
+      {
+        uri: fileUri,
+        path: fullPath,
+        jobId: jobResult.ok ? jobResult.jobId : null,
+        note: jobResult.ok
+          ? 'File created. Sync job started - poll /api/jobs/:id for status.'
+          : 'File created. Sync skipped (another job running).',
+      },
+      202
+    );
+  } catch (e) {
+    return errorResponse(
+      'RUNTIME',
+      `Failed to create document: ${e instanceof Error ? e.message : String(e)}`,
+      500
+    );
+  }
 }
 
 /**
@@ -680,6 +1096,22 @@ export function handleModelPull(ctxHolder: ContextHolder): Response {
     started: true,
     message: 'Download started. Poll /api/models/status for progress.',
   });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Jobs
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * GET /api/jobs/:id
+ * Poll job status for async operations.
+ */
+export function handleJob(jobId: string): Response {
+  const status = getJobStatus(jobId);
+  if (!status) {
+    return errorResponse('NOT_FOUND', 'Job not found or expired', 404);
+  }
+  return jsonResponse(status);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

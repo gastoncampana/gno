@@ -12,13 +12,19 @@ import { SqliteAdapter } from '../store/sqlite/adapter';
 import { createServerContext, disposeServerContext } from './context';
 // HTML import - Bun handles bundling TSX/CSS automatically via routes
 import homepage from './public/index.html';
+import type { ContextHolder } from './routes/api';
 import {
   handleAsk,
   handleCapabilities,
   handleCollections,
+  handleCreateCollection,
+  handleCreateDoc,
+  handleDeactivateDoc,
+  handleDeleteCollection,
   handleDoc,
   handleDocs,
   handleHealth,
+  handleJob,
   handleModelPull,
   handleModelStatus,
   handlePresets,
@@ -26,7 +32,9 @@ import {
   handleSearch,
   handleSetPreset,
   handleStatus,
+  handleSync,
 } from './routes/api';
+import { forbiddenResponse, isRequestAllowed } from './security';
 
 export interface ServeOptions {
   /** Port to listen on (default: 3000) */
@@ -127,9 +135,21 @@ export async function startServer(
     return { success: false, error: openResult.error.message };
   }
 
+  // Sync collections and contexts from config to DB (same as CLI initStore)
+  const syncCollResult = await store.syncCollections(config.collections);
+  if (!syncCollResult.ok) {
+    await store.close();
+    return { success: false, error: syncCollResult.error.message };
+  }
+  const syncCtxResult = await store.syncContexts(config.contexts ?? []);
+  if (!syncCtxResult.ok) {
+    await store.close();
+    return { success: false, error: syncCtxResult.error.message };
+  }
+
   // Create server context with LLM ports for hybrid search and AI answers
   // Use holder pattern to allow hot-reloading presets
-  const ctxHolder = {
+  const ctxHolder: ContextHolder = {
     current: await createServerContext(store, config),
     config, // Keep original config for reloading
   };
@@ -158,7 +178,7 @@ export async function startServer(
       // Enable development mode for HMR and console logging
       development: isDev,
 
-      // Routes object - Bun handles HTML bundling and /_bun/* assets automatically
+      // Static routes - Bun handles HTML bundling and /_bun/* assets automatically
       routes: {
         // SPA routes - all serve the same React app
         '/': homepage,
@@ -167,7 +187,7 @@ export async function startServer(
         '/doc': homepage,
         '/ask': homepage,
 
-        // API routes
+        // API routes with CSRF protection wrapper
         '/api/health': {
           GET: () => withSecurityHeaders(handleHealth(), isDev),
         },
@@ -178,11 +198,55 @@ export async function startServer(
         '/api/collections': {
           GET: async () =>
             withSecurityHeaders(await handleCollections(store), isDev),
+          POST: async (req: Request) => {
+            if (!isRequestAllowed(req, port)) {
+              return withSecurityHeaders(forbiddenResponse(), isDev);
+            }
+            return withSecurityHeaders(
+              await handleCreateCollection(ctxHolder, store, req),
+              isDev
+            );
+          },
+        },
+        '/api/sync': {
+          POST: async (req: Request) => {
+            if (!isRequestAllowed(req, port)) {
+              return withSecurityHeaders(forbiddenResponse(), isDev);
+            }
+            return withSecurityHeaders(
+              await handleSync(ctxHolder, store, req),
+              isDev
+            );
+          },
         },
         '/api/docs': {
           GET: async (req: Request) => {
             const url = new URL(req.url);
             return withSecurityHeaders(await handleDocs(store, url), isDev);
+          },
+          POST: async (req: Request) => {
+            if (!isRequestAllowed(req, port)) {
+              return withSecurityHeaders(forbiddenResponse(), isDev);
+            }
+            return withSecurityHeaders(
+              await handleCreateDoc(ctxHolder, store, req),
+              isDev
+            );
+          },
+        },
+        '/api/docs/:id/deactivate': {
+          POST: async (req: Request) => {
+            if (!isRequestAllowed(req, port)) {
+              return withSecurityHeaders(forbiddenResponse(), isDev);
+            }
+            const url = new URL(req.url);
+            // Extract id from /api/docs/:id/deactivate
+            const parts = url.pathname.split('/');
+            const id = decodeURIComponent(parts[3] || '');
+            return withSecurityHeaders(
+              await handleDeactivateDoc(store, id),
+              isDev
+            );
           },
         },
         '/api/doc': {
@@ -192,19 +256,34 @@ export async function startServer(
           },
         },
         '/api/search': {
-          POST: async (req: Request) =>
-            withSecurityHeaders(await handleSearch(store, req), isDev),
+          POST: async (req: Request) => {
+            if (!isRequestAllowed(req, port)) {
+              return withSecurityHeaders(forbiddenResponse(), isDev);
+            }
+            return withSecurityHeaders(await handleSearch(store, req), isDev);
+          },
         },
         '/api/query': {
-          POST: async (req: Request) =>
-            withSecurityHeaders(
+          POST: async (req: Request) => {
+            if (!isRequestAllowed(req, port)) {
+              return withSecurityHeaders(forbiddenResponse(), isDev);
+            }
+            return withSecurityHeaders(
               await handleQuery(ctxHolder.current, req),
               isDev
-            ),
+            );
+          },
         },
         '/api/ask': {
-          POST: async (req: Request) =>
-            withSecurityHeaders(await handleAsk(ctxHolder.current, req), isDev),
+          POST: async (req: Request) => {
+            if (!isRequestAllowed(req, port)) {
+              return withSecurityHeaders(forbiddenResponse(), isDev);
+            }
+            return withSecurityHeaders(
+              await handleAsk(ctxHolder.current, req),
+              isDev
+            );
+          },
         },
         '/api/capabilities': {
           GET: () =>
@@ -213,18 +292,50 @@ export async function startServer(
         '/api/presets': {
           GET: () =>
             withSecurityHeaders(handlePresets(ctxHolder.current), isDev),
-          POST: async (req: Request) =>
-            withSecurityHeaders(await handleSetPreset(ctxHolder, req), isDev),
+          POST: async (req: Request) => {
+            if (!isRequestAllowed(req, port)) {
+              return withSecurityHeaders(forbiddenResponse(), isDev);
+            }
+            return withSecurityHeaders(
+              await handleSetPreset(ctxHolder, req),
+              isDev
+            );
+          },
         },
         '/api/models/status': {
           GET: () => withSecurityHeaders(handleModelStatus(), isDev),
         },
         '/api/models/pull': {
-          POST: () => withSecurityHeaders(handleModelPull(ctxHolder), isDev),
+          POST: (req: Request) => {
+            if (!isRequestAllowed(req, port)) {
+              return withSecurityHeaders(forbiddenResponse(), isDev);
+            }
+            return withSecurityHeaders(handleModelPull(ctxHolder), isDev);
+          },
+        },
+        '/api/jobs/:id': {
+          GET: (req: Request) => {
+            const url = new URL(req.url);
+            const id = decodeURIComponent(url.pathname.split('/').pop() || '');
+            return withSecurityHeaders(handleJob(id), isDev);
+          },
+        },
+        '/api/collections/:name': {
+          DELETE: async (req: Request) => {
+            if (!isRequestAllowed(req, port)) {
+              return withSecurityHeaders(forbiddenResponse(), isDev);
+            }
+            const url = new URL(req.url);
+            const name = decodeURIComponent(
+              url.pathname.split('/').pop() || ''
+            );
+            return withSecurityHeaders(
+              await handleDeleteCollection(ctxHolder, store, name),
+              isDev
+            );
+          },
         },
       },
-
-      // No fetch fallback - let Bun handle /_bun/* assets and return 404 for others
     });
   } catch (e) {
     await store.close();
