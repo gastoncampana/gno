@@ -67,6 +67,75 @@ function blend(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Chunk Text Extraction
+// ─────────────────────────────────────────────────────────────────────────────
+
+const MAX_CHUNK_CHARS = 4000;
+
+interface BestChunkInfo {
+  candidate: FusionCandidate;
+  seq: number;
+}
+
+/**
+ * Extract best chunk per document for efficient reranking.
+ */
+function selectBestChunks(
+  toRerank: FusionCandidate[]
+): Map<string, BestChunkInfo> {
+  const bestChunkPerDoc = new Map<string, BestChunkInfo>();
+  for (const c of toRerank) {
+    const existing = bestChunkPerDoc.get(c.mirrorHash);
+    if (!existing || c.fusionScore > existing.candidate.fusionScore) {
+      bestChunkPerDoc.set(c.mirrorHash, { candidate: c, seq: c.seq });
+    }
+  }
+  return bestChunkPerDoc;
+}
+
+/**
+ * Fetch chunk texts for reranking.
+ */
+async function fetchChunkTexts(
+  store: StorePort,
+  bestChunkPerDoc: Map<string, BestChunkInfo>
+): Promise<{ texts: string[]; hashToIndex: Map<string, number> }> {
+  const uniqueHashes = [...bestChunkPerDoc.keys()];
+  const chunkResults = await Promise.all(
+    uniqueHashes.map((hash) => store.getChunks(hash))
+  );
+
+  const chunkTexts = new Map<string, string>();
+  for (let i = 0; i < uniqueHashes.length; i++) {
+    const hash = uniqueHashes[i] as string;
+    const result = chunkResults[i];
+    const bestInfo = bestChunkPerDoc.get(hash);
+
+    if (result?.ok && result.value && bestInfo) {
+      const chunk = result.value.find((c) => c.seq === bestInfo.seq);
+      const text = chunk?.text ?? '';
+      chunkTexts.set(
+        hash,
+        text.length > MAX_CHUNK_CHARS
+          ? `${text.slice(0, MAX_CHUNK_CHARS)}...`
+          : text
+      );
+    } else {
+      chunkTexts.set(hash, '');
+    }
+  }
+
+  const hashToIndex = new Map<string, number>();
+  const texts: string[] = [];
+  for (const hash of uniqueHashes) {
+    hashToIndex.set(hash, texts.length);
+    texts.push(chunkTexts.get(hash) ?? '');
+  }
+
+  return { texts, hashToIndex };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Rerank Implementation
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -80,7 +149,6 @@ export async function rerankCandidates(
   candidates: FusionCandidate[],
   options: RerankOptions = {}
 ): Promise<RerankResult> {
-  // Early return for empty candidates
   if (candidates.length === 0) {
     return { candidates: [], reranked: false };
   }
@@ -90,21 +158,20 @@ export async function rerankCandidates(
   const schedule = options.blendingSchedule ?? DEFAULT_BLENDING_SCHEDULE;
 
   // Normalize fusion scores to 0-1 range across ALL candidates for stability.
-  // This ensures blendedScore is always in [0,1] regardless of reranker availability.
   const fusionScoresAll = candidates.map((c) => c.fusionScore);
   const minFusionAll = Math.min(...fusionScoresAll);
   const maxFusionAll = Math.max(...fusionScoresAll);
   const fusionRangeAll = maxFusionAll - minFusionAll;
 
-  function normalizeFusionScore(score: number): number {
+  const normalizeFusionScore = (score: number): number => {
     if (fusionRangeAll < 1e-9) {
-      return 1; // tie for best
+      return 1;
     }
     const v = (score - minFusionAll) / fusionRangeAll;
     return Math.max(0, Math.min(1, v));
-  }
+  };
 
-  // If no reranker, return candidates with normalized fusion scores
+  // No reranker: return candidates with normalized fusion scores
   if (!rerankPort) {
     return {
       candidates: candidates.map((c) => ({
@@ -116,52 +183,17 @@ export async function rerankCandidates(
     };
   }
 
-  // Limit candidates for reranking
   const toRerank = candidates.slice(0, maxCandidates);
   const remaining = candidates.slice(maxCandidates);
 
-  // Dedupe by document - multiple chunks from same doc use single full-doc rerank
-  const uniqueHashes = [...new Set(toRerank.map((c) => c.mirrorHash))];
+  // Extract best chunk per document for efficient reranking
+  const bestChunkPerDoc = selectBestChunks(toRerank);
+  const { texts, hashToIndex } = await fetchChunkTexts(store, bestChunkPerDoc);
 
-  // Fetch full document content for each unique document (parallel)
-  // Max 128K chars per doc to fit in reranker context
-  const MAX_DOC_CHARS = 128_000;
-  const contentResults = await Promise.all(
-    uniqueHashes.map((hash) => store.getContent(hash))
-  );
-  const docContents = new Map<string, string>();
-  for (let i = 0; i < uniqueHashes.length; i++) {
-    const hash = uniqueHashes[i] as string;
-    const result = contentResults[i] as Awaited<
-      ReturnType<typeof store.getContent>
-    >;
-    if (result.ok && result.value) {
-      const content = result.value;
-      docContents.set(
-        hash,
-        content.length > MAX_DOC_CHARS
-          ? `${content.slice(0, MAX_DOC_CHARS)}...`
-          : content
-      );
-    } else {
-      // Fallback to empty string if content not available
-      docContents.set(hash, '');
-    }
-  }
-
-  // Build texts array for reranking (one per unique document)
-  const hashToIndex = new Map<string, number>();
-  const texts: string[] = [];
-  for (const hash of uniqueHashes) {
-    hashToIndex.set(hash, texts.length);
-    texts.push(docContents.get(hash) ?? '');
-  }
-
-  // Run reranking on full documents
+  // Run reranking on best chunks (much faster than full docs)
   const rerankResult = await rerankPort.rerank(query, texts);
 
   if (!rerankResult.ok) {
-    // Graceful degradation - return normalized fusion scores
     return {
       candidates: candidates.map((c) => ({
         ...c,
@@ -172,37 +204,29 @@ export async function rerankCandidates(
     };
   }
 
-  // Map rerank scores to candidates
-  // Note: We use normalizeFusionScore defined above (across ALL candidates)
-  // Build doc index->score map for O(1) lookup
-  // All chunks from same document share the same rerank score
+  // Normalize rerank scores using min-max
   const scoreByDocIndex = new Map(
     rerankResult.value.map((s) => [s.index, s.score])
   );
-
-  // Normalize rerank scores using min-max (models return varying scales)
   const rerankScores = rerankResult.value.map((s) => s.score);
   const minRerank = Math.min(...rerankScores);
   const maxRerank = Math.max(...rerankScores);
   const rerankRange = maxRerank - minRerank;
 
-  function normalizeRerankScore(score: number): number {
+  const normalizeRerankScore = (score: number): number => {
     if (rerankRange < 1e-9) {
-      return 1; // All tied for best
+      return 1;
     }
     return (score - minRerank) / rerankRange;
-  }
+  };
 
+  // Build reranked candidates with blended scores
   const rerankedCandidates: RerankedCandidate[] = toRerank.map((c, i) => {
-    // Get document-level rerank score (shared by all chunks from same doc)
     const docIndex = hashToIndex.get(c.mirrorHash) ?? -1;
     const rerankScore = scoreByDocIndex.get(docIndex) ?? null;
-
-    // Normalize rerank score to 0-1 range using min-max
     const normalizedRerankScore =
       rerankScore !== null ? normalizeRerankScore(rerankScore) : null;
 
-    // Calculate blended score using normalized fusion score
     const position = i + 1;
     const normalizedFusion = normalizeFusionScore(c.fusionScore);
     const blendedScore =
@@ -210,42 +234,30 @@ export async function rerankCandidates(
         ? blend(normalizedFusion, normalizedRerankScore, position, schedule)
         : normalizedFusion;
 
-    return {
-      ...c,
-      rerankScore: normalizedRerankScore,
-      blendedScore,
-    };
+    return { ...c, rerankScore: normalizedRerankScore, blendedScore };
   });
 
-  // Add remaining candidates (not reranked)
-  // These get normalized fusion scores with penalty but clamped to [0,1]
+  // Add remaining candidates with penalty
   const allCandidates: RerankedCandidate[] = [
     ...rerankedCandidates,
-    ...remaining.map((c) => {
-      const base = normalizeFusionScore(c.fusionScore);
-      return {
-        ...c,
-        rerankScore: null,
-        // Apply 0.5x penalty and clamp to [0,1]
-        blendedScore: Math.max(0, Math.min(1, base * 0.5)),
-      };
-    }),
+    ...remaining.map((c) => ({
+      ...c,
+      rerankScore: null,
+      blendedScore: Math.max(
+        0,
+        Math.min(1, normalizeFusionScore(c.fusionScore) * 0.5)
+      ),
+    })),
   ];
 
-  // Sort by blended score
+  // Sort by blended score with deterministic tie-breaking
   allCandidates.sort((a, b) => {
     const scoreDiff = b.blendedScore - a.blendedScore;
     if (Math.abs(scoreDiff) > 1e-9) {
       return scoreDiff;
     }
-    // Deterministic tie-breaking
-    const aKey = `${a.mirrorHash}:${a.seq}`;
-    const bKey = `${b.mirrorHash}:${b.seq}`;
-    return aKey.localeCompare(bKey);
+    return `${a.mirrorHash}:${a.seq}`.localeCompare(`${b.mirrorHash}:${b.seq}`);
   });
 
-  return {
-    candidates: allCandidates,
-    reranked: true,
-  };
+  return { candidates: allCandidates, reranked: true };
 }
