@@ -151,15 +151,13 @@ The AI will pass `fast: true` or `thorough: true` to `gno_query` based on your r
 
 ### Model Quality Matters
 
-**Recommended**: Claude Sonnet 3.5+ or GPT-4+
+**Recommended**: Claude Haiku 4.5+, Sonnet 4.5+, or GPT-4+. Raycast's **Auto** model selection also works well.
 
 Smaller/weaker models may:
 
 - Hallucinate collection names (e.g., `collection: gno` instead of `*`)
 - Use incorrect parameter values
 - Fail to call the right tools
-
-Sonnet 4.5 tested and works well — correctly uses `Collection: *` and proper `gno://` URIs.
 
 ### Requirements
 
