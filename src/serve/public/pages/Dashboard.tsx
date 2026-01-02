@@ -9,11 +9,11 @@ import {
   PenIcon,
   RefreshCwIcon,
   Search,
-  Sparkles,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { CaptureButton } from "../components/CaptureButton";
+import { GnoLogo } from "../components/GnoLogo";
 import { IndexingProgress } from "../components/IndexingProgress";
 import { Button } from "../components/ui/button";
 import {
@@ -102,7 +102,7 @@ export default function Dashboard({ navigate }: PageProps) {
         <div className="relative px-8 py-12">
           <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Sparkles className="size-8 text-primary" />
+              <GnoLogo className="size-8 text-primary" />
               <h1 className="font-bold text-4xl text-primary tracking-tight">
                 GNO
               </h1>
