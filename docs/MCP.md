@@ -137,16 +137,7 @@ Use GNO directly in [Raycast AI](https://www.raycast.com/core-features/ai) with 
 
 ### Setup
 
-**Option 1: One-Click Deeplink**
-
-Click to install directly:
-
-- [Install GNO (read-only)](raycast://mcp/install?%7B%22mcpServers%22%3A%7B%22gno%22%3A%7B%22command%22%3A%22gno%22%2C%22args%22%3A%5B%22mcp%22%5D%7D%7D%7D)
-- [Install GNO (write-enabled)](raycast://mcp/install?%7B%22mcpServers%22%3A%7B%22gno%22%3A%7B%22command%22%3A%22gno%22%2C%22args%22%3A%5B%22mcp%22%2C%22--enable-write%22%5D%7D%7D%7D)
-
-> ⚠️ **Write-enabled mode** allows AI to create documents, add collections, and trigger reindexing. Review tool calls before approving.
-
-**Option 2: Clipboard Auto-Fill**
+**Option 1: Clipboard Auto-Fill**
 
 Copy this JSON, then open Raycast → "Install MCP Server". Raycast auto-fills from clipboard.
 
@@ -176,7 +167,7 @@ Write-enabled:
 }
 ```
 
-**Option 3: Manual UI**
+**Option 2: Manual UI**
 
 1. Open Raycast → Search "Install MCP Server"
 2. Configure:
