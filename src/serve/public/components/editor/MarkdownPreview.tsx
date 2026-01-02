@@ -12,6 +12,7 @@ import { ExternalLinkIcon } from "lucide-react";
 import { memo } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeSanitize from "rehype-sanitize";
+import remarkGfm from "remark-gfm";
 
 import { cn } from "../../lib/utils";
 import { CodeBlock, CodeBlockCopyButton } from "../ai-elements/code-block";
@@ -24,9 +25,11 @@ export interface MarkdownPreviewProps {
 }
 
 // Inline code styling
-const InlineCode: FC<ComponentProps<"code">> = ({
+// Note: Destructure `node` to prevent react-markdown from leaking it to DOM
+const InlineCode: FC<ComponentProps<"code"> & { node?: unknown }> = ({
   className,
   children,
+  node: _node,
   ...props
 }) => (
   <code
@@ -41,10 +44,11 @@ const InlineCode: FC<ComponentProps<"code">> = ({
 );
 
 // Link handling - external links open in new tab
-const Link: FC<ComponentProps<"a">> = ({
+const Link: FC<ComponentProps<"a"> & { node?: unknown }> = ({
   href,
   children,
   className,
+  node: _node,
   ...props
 }) => {
   const isExternal = href?.startsWith("http");
@@ -122,15 +126,18 @@ const Pre: FC<ComponentProps<"pre">> = ({ children, ...props }) => {
   );
 };
 
-// Blockquote with refined styling
-const Blockquote: FC<ComponentProps<"blockquote">> = ({
+// Blockquote with refined scholarly styling
+const Blockquote: FC<ComponentProps<"blockquote"> & { node?: unknown }> = ({
   children,
   className,
+  node: _node,
   ...props
 }) => (
   <blockquote
     className={cn(
-      "my-4 border-l-2 border-secondary/60 bg-secondary/5 py-2 pr-4 pl-4 italic text-muted-foreground",
+      "my-5 border-l-[3px] border-primary/40 bg-muted/20 py-3 pr-5 pl-5",
+      "font-serif text-[0.95em] italic text-muted-foreground/90",
+      "rounded-r-md shadow-sm",
       "[&>p]:mb-0",
       className
     )}
@@ -141,9 +148,10 @@ const Blockquote: FC<ComponentProps<"blockquote">> = ({
 );
 
 // List styles
-const UnorderedList: FC<ComponentProps<"ul">> = ({
+const UnorderedList: FC<ComponentProps<"ul"> & { node?: unknown }> = ({
   children,
   className,
+  node: _node,
   ...props
 }) => (
   <ul
@@ -154,9 +162,10 @@ const UnorderedList: FC<ComponentProps<"ul">> = ({
   </ul>
 );
 
-const OrderedList: FC<ComponentProps<"ol">> = ({
+const OrderedList: FC<ComponentProps<"ol"> & { node?: unknown }> = ({
   children,
   className,
+  node: _node,
   ...props
 }) => (
   <ol
@@ -167,13 +176,15 @@ const OrderedList: FC<ComponentProps<"ol">> = ({
   </ol>
 );
 
-// Table styles
-const Table: FC<ComponentProps<"table">> = ({
+// Table styles - refined scholarly aesthetic
+// Note: Destructure `node` to prevent react-markdown from leaking it to DOM
+const Table: FC<ComponentProps<"table"> & { node?: unknown }> = ({
   children,
   className,
+  node: _node,
   ...props
 }) => (
-  <div className="my-4 overflow-x-auto rounded-lg border border-border/60">
+  <div className="my-4 overflow-x-auto rounded-lg border border-border/60 shadow-sm">
     <table
       className={cn("w-full border-collapse text-sm", className)}
       {...props}
@@ -183,45 +194,64 @@ const Table: FC<ComponentProps<"table">> = ({
   </div>
 );
 
-const TableHead: FC<ComponentProps<"thead">> = ({
+const TableHead: FC<ComponentProps<"thead"> & { node?: unknown }> = ({
   children,
   className,
+  node: _node,
   ...props
 }) => (
-  <thead className={cn("bg-muted/50", className)} {...props}>
+  <thead
+    className={cn(
+      "bg-muted/60 border-b border-border/50",
+      "text-muted-foreground uppercase tracking-wider text-xs",
+      className
+    )}
+    {...props}
+  >
     {children}
   </thead>
 );
 
-const TableRow: FC<ComponentProps<"tr">> = ({
+const TableRow: FC<ComponentProps<"tr"> & { node?: unknown }> = ({
   children,
   className,
+  node: _node,
   ...props
 }) => (
   <tr
-    className={cn("border-b border-border/40 last:border-0", className)}
+    className={cn(
+      "border-b border-border/30 last:border-0",
+      "transition-colors hover:bg-white/5",
+      "odd:bg-white/[0.03]",
+      className
+    )}
     {...props}
   >
     {children}
   </tr>
 );
 
-const TableCell: FC<ComponentProps<"td">> = ({
+const TableCell: FC<ComponentProps<"td"> & { node?: unknown }> = ({
   children,
   className,
+  node: _node,
   ...props
 }) => (
-  <td className={cn("px-4 py-2", className)} {...props}>
+  <td className={cn("px-4 py-2.5 align-top", className)} {...props}>
     {children}
   </td>
 );
 
-const TableHeaderCell: FC<ComponentProps<"th">> = ({
+const TableHeaderCell: FC<ComponentProps<"th"> & { node?: unknown }> = ({
   children,
   className,
+  node: _node,
   ...props
 }) => (
-  <th className={cn("px-4 py-2 text-left font-semibold", className)} {...props}>
+  <th
+    className={cn("px-4 py-2.5 text-left font-semibold", className)}
+    {...props}
+  >
     {children}
   </th>
 );
@@ -230,9 +260,10 @@ const TableHeaderCell: FC<ComponentProps<"th">> = ({
 const Hr: FC = () => <hr className="my-6 border-0 border-t border-border/50" />;
 
 // Paragraph
-const Paragraph: FC<ComponentProps<"p">> = ({
+const Paragraph: FC<ComponentProps<"p"> & { node?: unknown }> = ({
   children,
   className,
+  node: _node,
   ...props
 }) => (
   <p className={cn("mb-4 leading-relaxed last:mb-0", className)} {...props}>
@@ -241,8 +272,12 @@ const Paragraph: FC<ComponentProps<"p">> = ({
 );
 
 // Image with proper styling
-const Image: FC<ComponentProps<"img">> = ({ alt, className, ...props }) => (
-  // Alt is already passed via props spread, explicit declaration for required attr
+const Image: FC<ComponentProps<"img"> & { node?: unknown }> = ({
+  alt,
+  className,
+  node: _node,
+  ...props
+}) => (
   <img
     alt={alt ?? ""}
     className={cn(
@@ -300,7 +335,11 @@ export const MarkdownPreview = memo(
           className
         )}
       >
-        <ReactMarkdown components={components} rehypePlugins={[rehypeSanitize]}>
+        <ReactMarkdown
+          components={components}
+          rehypePlugins={[rehypeSanitize]}
+          remarkPlugins={[remarkGfm]}
+        >
           {content}
         </ReactMarkdown>
       </div>

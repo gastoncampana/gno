@@ -564,7 +564,7 @@ export default function DocumentEditor({ navigate }: PageProps) {
       <div className="flex min-h-0 flex-1">
         {/* Editor pane */}
         <div
-          className={`min-h-0 overflow-hidden ${showPreview ? "w-1/2 border-border/30 border-r" : "w-full"}`}
+          className={`min-h-0 overflow-hidden ${showPreview ? "w-1/2 border-r border-border/40 shadow-[1px_0_3px_-1px_rgba(0,0,0,0.3)]" : "w-full"}`}
         >
           <CodeMirrorEditor
             className="h-full"
@@ -580,7 +580,7 @@ export default function DocumentEditor({ navigate }: PageProps) {
         {/* Preview pane */}
         {showPreview && (
           <div
-            className="w-1/2 min-h-0 overflow-auto bg-background p-6"
+            className="w-1/2 min-h-0 overflow-auto bg-background px-8 py-6"
             onScroll={handlePreviewScroll}
             ref={previewRef}
           >

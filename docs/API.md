@@ -64,9 +64,9 @@ The API binds to `127.0.0.1` only and is not accessible from the network.
 
 All mutating requests (POST, DELETE) require one of:
 
-1. **Same-origin request** — No `Origin` header (curl, scripts)
-2. **Valid Origin** — `Origin: http://localhost:<port>` or `http://127.0.0.1:<port>`
-3. **API Token** — `X-GNO-Token` header (for non-browser clients)
+1. **Same-origin request**: No `Origin` header (curl, scripts)
+2. **Valid Origin**: `Origin: http://localhost:<port>` or `http://127.0.0.1:<port>`
+3. **API Token**: `X-GNO-Token` header (for non-browser clients)
 
 Cross-origin requests from other domains are rejected with `403 Forbidden`.
 
@@ -814,17 +814,21 @@ Get an AI-generated answer with citations from your documents.
   "limit": 5,
   "collection": "notes",
   "lang": "en",
-  "maxAnswerTokens": 512
+  "maxAnswerTokens": 512,
+  "noExpand": false,
+  "noRerank": false
 }
 ```
 
-| Field             | Type   | Default | Description                            |
-| :---------------- | :----- | :------ | :------------------------------------- |
-| `query`           | string | —       | Question (required)                    |
-| `limit`           | number | 5       | Number of sources to consider (max 20) |
-| `collection`      | string | —       | Filter by collection                   |
-| `lang`            | string | auto    | Query language hint                    |
-| `maxAnswerTokens` | number | 512     | Max tokens in answer                   |
+| Field             | Type    | Default | Description                            |
+| :---------------- | :------ | :------ | :------------------------------------- |
+| `query`           | string  | —       | Question (required)                    |
+| `limit`           | number  | 5       | Number of sources to consider (max 20) |
+| `collection`      | string  | —       | Filter by collection                   |
+| `lang`            | string  | auto    | Query language hint                    |
+| `maxAnswerTokens` | number  | 512     | Max tokens in answer                   |
+| `noExpand`        | boolean | false   | Disable query expansion                |
+| `noRerank`        | boolean | false   | Disable cross-encoder reranking        |
 
 **Response**:
 
@@ -1131,6 +1135,6 @@ None. The API runs locally with no rate limiting. Performance depends on your ha
 
 ## See Also
 
-- [Web UI Guide](./WEB-UI.md) — Visual interface documentation
-- [CLI Reference](./CLI.md) — Command-line interface
-- [MCP Integration](./MCP.md) — AI assistant integration
+- [Web UI Guide](./WEB-UI.md): Visual interface documentation
+- [CLI Reference](./CLI.md): Command-line interface
+- [MCP Integration](./MCP.md): AI assistant integration

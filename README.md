@@ -1,13 +1,13 @@
 # GNO
 
-**Your Local Second Brain** — Index, search, and synthesize your entire digital life.
+**Your Local Second Brain**: Index, search, and synthesize your entire digital life.
 
 [![npm](./assets/badges/npm.svg)](https://www.npmjs.com/package/@gmickel/gno)
 [![MIT License](./assets/badges/license.svg)](./LICENSE)
 [![Website](./assets/badges/website.svg)](https://gno.sh)
 [![Twitter](./assets/badges/twitter.svg)](https://twitter.com/gmickel)
 
-GNO is a local knowledge engine for privacy-conscious developers and AI agents. Index your notes, code, PDFs, and Office docs. Get hybrid search (BM25 + vector + reranking) and AI-powered answers—all running 100% on your machine.
+GNO is a local knowledge engine for privacy-conscious developers and AI agents. Index your notes, code, PDFs, and Office docs. Get hybrid search (BM25 + vector + reranking) and AI-powered answers, all running 100% on your machine.
 
 ---
 
@@ -16,9 +16,9 @@ GNO is a local knowledge engine for privacy-conscious developers and AI agents. 
 - [Quick Start](#quick-start)
 - [Installation](#installation)
 - [Search Modes](#search-modes)
+- [Agent Integration](#agent-integration)
 - [Web UI](#web-ui)
 - [REST API](#rest-api)
-- [Agent Integration](#agent-integration)
 - [How It Works](#how-it-works)
 - [Features](#features)
 - [Local Models](#local-models)
@@ -85,7 +85,7 @@ Check status: `gno mcp status`
 
 #### Skills (Claude Code, Codex, OpenCode)
 
-Skills integrate via CLI—no MCP overhead:
+Skills integrate via CLI with no MCP overhead:
 
 ```bash
 gno skill install --scope user       # User-wide
@@ -106,7 +106,7 @@ gno skill install --target all       # Both Claude + Codex
 | `gno query`        | Hybrid              | Best accuracy (BM25 + vector + reranking) |
 | `gno ask --answer` | RAG                 | Direct answers with citations             |
 
-**BM25** indexes full documents (not chunks) with Snowball stemming—"running" matches "run".
+**BM25** indexes full documents (not chunks) with Snowball stemming, so "running" matches "run".
 **Vector** embeds chunks with document titles for context awareness.
 
 ```bash
@@ -120,29 +120,76 @@ Output formats: `--json`, `--files`, `--csv`, `--md`, `--xml`
 
 ---
 
+## Agent Integration
+
+Give your local LLM agents a long-term memory. GNO integrates as a Claude Code skill or MCP server, allowing agents to search, read, and cite your local files.
+
+### Skills
+
+Skills add GNO search to Claude Code/Codex without MCP protocol overhead:
+
+```bash
+gno skill install --scope user
+```
+
+![GNO Skill in Claude Code](./assets/screenshots/claudecodeskill.jpg)
+
+Then ask your agent: _"Search my notes for the auth discussion"_
+
+[Skill setup guide →](https://gno.sh/docs/integrations/skills/)
+
+### MCP Server
+
+Connect GNO to Claude Desktop, Cursor, Raycast, and more:
+
+![GNO MCP](./assets/screenshots/mcp.jpg)
+
+GNO exposes 6 tools via [Model Context Protocol](https://modelcontextprotocol.io):
+
+| Tool            | Description                 |
+| :-------------- | :-------------------------- |
+| `gno_search`    | BM25 keyword search         |
+| `gno_vsearch`   | Vector semantic search      |
+| `gno_query`     | Hybrid search (recommended) |
+| `gno_get`       | Retrieve document by ID     |
+| `gno_multi_get` | Batch document retrieval    |
+| `gno_status`    | Index health check          |
+
+**Design**: MCP tools are retrieval-only. Your AI assistant (Claude, GPT-4) synthesizes answers from retrieved context. Best retrieval (GNO) + best reasoning (your LLM).
+
+[MCP setup guide →](https://gno.sh/docs/MCP/)
+
+---
+
 ## Web UI
 
-Visual dashboard for search, browsing, editing, and AI answers—right in your browser.
+Visual dashboard for search, browsing, editing, and AI answers. Right in your browser.
 
 ```bash
 gno serve                    # Start on port 3000
 gno serve --port 8080        # Custom port
 ```
 
-![GNO Web UI](./assets/screenshots/webui-home.png)
+![GNO Web UI](./assets/screenshots/webui-home.jpg)
 
 Open `http://localhost:3000` to:
 
-- **Search** — BM25, vector, or hybrid modes with visual results
-- **Browse** — Paginated document list, filter by collection
-- **Edit** — Create, edit, and delete documents with live preview
-- **Ask** — AI-powered Q&A with citations
-- **Manage Collections** — Add, remove, and re-index collections
-- **Switch presets** — Change models live without restart
+- **Search**: BM25, vector, or hybrid modes with visual results
+- **Browse**: Paginated document list, filter by collection
+- **Edit**: Create, edit, and delete documents with live preview
+- **Ask**: AI-powered Q&A with citations
+- **Manage Collections**: Add, remove, and re-index collections
+- **Switch presets**: Change models live without restart
+
+### Search
+
+![GNO Search](./assets/screenshots/webui-search.jpg)
+
+Three retrieval modes: BM25 (keyword), Vector (semantic), or Hybrid (best of both). Adjust search depth for speed vs thoroughness.
 
 ### Document Editing
 
-![GNO Document Editor](./assets/screenshots/webui-editor.png)
+![GNO Document Editor](./assets/screenshots/webui-editor.jpg)
 
 Full-featured markdown editor with:
 
@@ -156,7 +203,7 @@ Full-featured markdown editor with:
 
 ### Collections Management
 
-![GNO Collections](./assets/screenshots/webui-collections.png)
+![GNO Collections](./assets/screenshots/webui-collections.jpg)
 
 - Add collections with folder path input
 - View document count, chunk count, embedding status
@@ -165,9 +212,9 @@ Full-featured markdown editor with:
 
 ### AI Answers
 
-![GNO AI Answers](./assets/screenshots/webui-ask-answer.png)
+![GNO AI Answers](./assets/screenshots/webui-ask-answer.jpg)
 
-Ask questions in natural language—GNO searches your documents and synthesizes answers with inline citations linking to sources.
+Ask questions in natural language. GNO searches your documents and synthesizes answers with inline citations linking to sources.
 
 Everything runs locally. No cloud, no accounts, no data leaving your machine.
 
@@ -219,41 +266,6 @@ No authentication. No rate limits. Build custom tools, automate workflows, integ
 
 ---
 
-## Agent Integration
-
-### MCP Server
-
-![GNO MCP](./assets/screenshots/mcp.jpg)
-
-GNO exposes 6 tools via [Model Context Protocol](https://modelcontextprotocol.io):
-
-| Tool            | Description                 |
-| :-------------- | :-------------------------- |
-| `gno_search`    | BM25 keyword search         |
-| `gno_vsearch`   | Vector semantic search      |
-| `gno_query`     | Hybrid search (recommended) |
-| `gno_get`       | Retrieve document by ID     |
-| `gno_multi_get` | Batch document retrieval    |
-| `gno_status`    | Index health check          |
-
-**Design**: MCP tools are retrieval-only. Your AI assistant (Claude, GPT-4) synthesizes answers from retrieved context—best retrieval (GNO) + best reasoning (your LLM).
-
-### Skills
-
-Skills add GNO search to Claude Code/Codex without MCP protocol overhead:
-
-```bash
-gno skill install --scope user
-```
-
-![GNO Skill in Claude Code](./assets/screenshots/claudecodeskill.jpg)
-
-Then ask your agent: _"Search my notes for the auth discussion"_
-
-> **Detailed docs**: [MCP Integration](https://gno.sh/docs/MCP/) · [Use Cases](https://gno.sh/docs/USE-CASES/)
-
----
-
 ## How It Works
 
 ```mermaid
@@ -279,11 +291,11 @@ graph TD
     M --> N[Final Results]
 ```
 
-0. **Strong Signal Check** — Skip expansion if BM25 has confident match (saves 1-3s)
-1. **Query Expansion** — LLM generates lexical variants, semantic rephrases, and a [HyDE](https://arxiv.org/abs/2212.10496) passage
-2. **Parallel Retrieval** — Document-level BM25 + chunk-level vector search on all variants
-3. **Fusion** — RRF with 2× weight for original query, tiered bonus for top ranks
-4. **Reranking** — Qwen3-Reranker scores full documents (32K context), blended with fusion
+0. **Strong Signal Check**: Skip expansion if BM25 has confident match (saves 1-3s)
+1. **Query Expansion**: LLM generates lexical variants, semantic rephrases, and a [HyDE](https://arxiv.org/abs/2212.10496) passage
+2. **Parallel Retrieval**: Document-level BM25 + chunk-level vector search on all variants
+3. **Fusion**: RRF with 2× weight for original query, tiered bonus for top ranks
+4. **Reranking**: Qwen3-Reranker scores full documents (32K context), blended with fusion
 
 > **Deep dive**: [How Search Works](https://gno.sh/docs/HOW-SEARCH-WORKS/)
 
@@ -298,12 +310,12 @@ graph TD
 | **Web UI**          | Visual dashboard for search, browse, edit, and AI Q&A |
 | **REST API**        | HTTP API for custom tools and integrations            |
 | **Multi-Format**    | Markdown, PDF, DOCX, XLSX, PPTX, plain text           |
-| **Local LLM**       | AI answers via llama.cpp—no API keys                  |
+| **Local LLM**       | AI answers via llama.cpp, no API keys                 |
 | **Privacy First**   | 100% offline, zero telemetry, your data stays yours   |
 | **MCP Server**      | Works with Claude Desktop, Cursor, Zed, + 8 more      |
 | **Collections**     | Organize sources with patterns, excludes, contexts    |
 | **Multilingual**    | 30+ languages, auto-detection, cross-lingual search   |
-| **Incremental**     | SHA-256 tracking—only changed files re-indexed        |
+| **Incremental**     | SHA-256 tracking, only changed files re-indexed       |
 | **Keyboard First**  | ⌘N capture, ⌘K search, ⌘/ shortcuts, ⌘S save          |
 
 ---
