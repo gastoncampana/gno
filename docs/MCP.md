@@ -140,6 +140,15 @@ The AI will call GNO tools (gno_query, gno_get) and synthesize answers from your
 @gno get the contents of my project README
 ```
 
+**Search depth** — ask for faster or more thorough searches:
+
+```
+@gno quick search for TypeScript errors          # fast mode (~0.7s)
+@gno do a thorough search for auth vulnerabilities  # thorough mode (~5-8s)
+```
+
+The AI will pass `fast: true` or `thorough: true` to `gno_query` based on your request. Default mode balances speed and quality (~2-3s).
+
 ### Model Quality Matters
 
 **Recommended**: Claude Sonnet 3.5+ or GPT-4+
