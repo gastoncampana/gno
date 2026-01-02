@@ -153,13 +153,27 @@ Copy this JSON, then open Raycast → "Install MCP Server". Raycast auto-fills f
 Read-only:
 
 ```json
-{"mcpServers":{"gno":{"command":"gno","args":["mcp"]}}}
+{
+  "mcpServers": {
+    "gno": {
+      "command": "gno",
+      "args": ["mcp"]
+    }
+  }
+}
 ```
 
 Write-enabled:
 
 ```json
-{"mcpServers":{"gno":{"command":"gno","args":["mcp","--enable-write"]}}}
+{
+  "mcpServers": {
+    "gno": {
+      "command": "gno",
+      "args": ["mcp", "--enable-write"]
+    }
+  }
+}
 ```
 
 **Option 3: Manual UI**
