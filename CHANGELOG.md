@@ -5,6 +5,15 @@ All notable changes to GNO will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.1] - 2026-01-02
+
+### Added
+
+- **Document Editor Sync Scrolling** - Bidirectional scroll sync between CodeMirror editor and markdown preview
+  - Toggle button (Link/Unlink icons) in toolbar, enabled by default
+  - Percentage-based position mapping with event-based loop prevention
+  - Epsilon checks prevent unnecessary updates and jitter
+
 ## [0.9.0] - 2026-01-02
 
 ### Added
