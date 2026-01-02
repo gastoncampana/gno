@@ -166,6 +166,28 @@ See [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md) for CI matrix, caching, a
    - `tailwindcss`, `bun-plugin-tailwind` - runtime (dependencies)
    - `@biomejs/biome`, `oxlint` - build only (devDependencies)
 
+4. **Pre-built assets** - Some things can't resolve at runtime from global installs
+   - CSS is pre-built with `bun run build:css` (CI runs this before publish)
+   - `globals.built.css` ships in package, `globals.css` is source
+
+**Test npm package locally:**
+
+```bash
+# Build and pack
+bun run build:css && npm pack
+
+# Install globally from tarball
+npm install -g ./gmickel-gno-*.tgz
+
+# Test
+gno --version
+gno serve  # Check CSS loads at http://localhost:3000
+
+# Cleanup
+npm uninstall -g @gmickel/gno
+rm gmickel-gno-*.tgz
+```
+
 ## Architecture Pattern
 
 GNO uses **"Ports without DI"** - a pragmatic simplification of hexagonal architecture:
