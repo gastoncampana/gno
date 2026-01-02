@@ -528,18 +528,30 @@ body.layout-feature .site-main {
 
 .content-home {
   max-width: 1200px;
+}
 
-  // Markdown content images (screenshots) - constrained with styling
-  > p > img,
-  > img {
-    display: block;
-    max-width: 800px;
-    width: 100%;
-    height: auto;
-    margin: $space-6 auto;
-    border-radius: $radius-lg;
-    border: 1px solid var(--color-border);
-    box-shadow: var(--shadow-lg);
+// Markdown content images (screenshots) - constrained with styling
+// Applies to homepage, docs pages, and all content areas
+.content img,
+.content-home img,
+.page-content img {
+  display: block;
+  max-width: 800px;
+  width: 100%;
+  height: auto;
+  margin: $space-6 auto;
+  border-radius: $radius-lg;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-lg);
+  transition:
+    transform $transition-base,
+    box-shadow $transition-base;
+
+  &.lightbox-enabled:hover {
+    transform: scale(1.01);
+    box-shadow:
+      var(--shadow-lg),
+      0 0 0 2px var(--color-accent);
   }
 }
 
@@ -2298,5 +2310,91 @@ html.js {
 
   img {
     max-width: 100% !important;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Image Lightbox
+// -----------------------------------------------------------------------------
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity $transition-base,
+    visibility $transition-base;
+
+  &.open {
+    opacity: 1;
+    visibility: visible;
+
+    .lightbox-content {
+      transform: scale(1);
+    }
+  }
+}
+
+.lightbox-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.lightbox-content {
+  position: relative;
+  max-width: 95vw;
+  max-height: 95vh;
+  transform: scale(0.95);
+  transition: transform $transition-base;
+}
+
+.lightbox-img {
+  display: block;
+  max-width: 95vw;
+  max-height: 90vh;
+  width: auto;
+  height: auto;
+  border-radius: $radius-lg;
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.lightbox-close {
+  position: absolute;
+  top: -$space-6;
+  right: -$space-6;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-full;
+  color: var(--color-text-primary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: all $transition-fast;
+  box-shadow: var(--shadow-md);
+
+  &:hover {
+    background: var(--color-accent);
+    color: #fff;
+    border-color: var(--color-accent);
+    transform: scale(1.1);
+  }
+
+  @media (max-width: $bp-sm) {
+    top: $space-4;
+    right: $space-4;
   }
 }

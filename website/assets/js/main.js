@@ -151,6 +151,83 @@
   addCopyButtons();
 
   // ==========================================================================
+  // Image Lightbox
+  // ==========================================================================
+
+  function initLightbox() {
+    // Create lightbox elements
+    var lightbox = document.createElement("div");
+    lightbox.className = "lightbox";
+    lightbox.innerHTML =
+      '<div class="lightbox-backdrop"></div>' +
+      '<div class="lightbox-content">' +
+      '<img class="lightbox-img" src="" alt="">' +
+      '<button class="lightbox-close" aria-label="Close lightbox">&times;</button>' +
+      "</div>";
+    document.body.appendChild(lightbox);
+
+    var lightboxImg = lightbox.querySelector(".lightbox-img");
+    var backdrop = lightbox.querySelector(".lightbox-backdrop");
+    var closeBtn = lightbox.querySelector(".lightbox-close");
+
+    function openLightbox(src, alt) {
+      lightboxImg.src = src;
+      lightboxImg.alt = alt || "";
+      lightbox.classList.add("open");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeLightbox() {
+      lightbox.classList.remove("open");
+      document.body.style.overflow = "";
+    }
+
+    // Click handlers
+    backdrop.addEventListener("click", closeLightbox);
+    closeBtn.addEventListener("click", closeLightbox);
+
+    // ESC to close
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && lightbox.classList.contains("open")) {
+        closeLightbox();
+      }
+    });
+
+    // Make content images clickable (screenshots)
+    document
+      .querySelectorAll(".content img, .content-home img, .page-content img")
+      .forEach(function (img) {
+        // Skip small images, icons, or already-processed
+        if (img.classList.contains("lightbox-enabled")) return;
+        if (img.naturalWidth < 200) return;
+
+        img.classList.add("lightbox-enabled");
+        img.style.cursor = "zoom-in";
+        img.setAttribute("tabindex", "0");
+        img.setAttribute("role", "button");
+        img.setAttribute("aria-label", "Click to enlarge image");
+
+        img.addEventListener("click", function () {
+          openLightbox(this.src, this.alt);
+        });
+
+        img.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            openLightbox(this.src, this.alt);
+          }
+        });
+      });
+  }
+
+  // Run after images load
+  if (document.readyState === "complete") {
+    initLightbox();
+  } else {
+    window.addEventListener("load", initLightbox);
+  }
+
+  // ==========================================================================
   // External Links
   // ==========================================================================
 
