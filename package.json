@@ -1,6 +1,6 @@
 {
   "name": "@gmickel/gno",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "Local semantic search for your documents. Index Markdown, PDF, and Office files with hybrid BM25 + vector search.",
   "keywords": [
     "embeddings",
@@ -101,6 +101,7 @@
     "sqlite-vec": "^0.1.7-alpha.2",
     "streamdown": "^1.6.10",
     "tailwind-merge": "^3.4.0",
+    "tailwindcss": "^4.1.18",
     "use-stick-to-bottom": "^1.1.1",
     "zod": "^4.3.4"
   },
@@ -120,7 +121,6 @@
     "oxlint-tsgolint": "^0.10.1",
     "pdf-lib": "^1.17.1",
     "pptxgenjs": "^4.0.1",
-    "tailwindcss": "^4.1.18",
     "ultracite": "7.0.4"
   },
   "peerDependencies": {
