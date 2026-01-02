@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
+import { AddCollectionDialog } from "../components/AddCollectionDialog";
 import { Loader } from "../components/ai-elements/loader";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -211,7 +212,7 @@ function CollectionCard({
   );
 }
 
-export default function Collections({ navigate }: PageProps) {
+export default function Collections({ navigate: _navigate }: PageProps) {
   const [collections, setCollections] = useState<CollectionStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -223,6 +224,7 @@ export default function Collections({ navigate }: PageProps) {
     null
   );
   const [removing, setRemoving] = useState(false);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
 
   const loadCollections = useCallback(async () => {
     const { data, error: err } = await apiFetch<StatusResponse>("/api/status");
@@ -334,7 +336,7 @@ export default function Collections({ navigate }: PageProps) {
               )}
               Refresh
             </Button>
-            <Button onClick={() => navigate("/add-collection")} size="sm">
+            <Button onClick={() => setAddDialogOpen(true)} size="sm">
               <FolderPlusIcon className="mr-1.5 size-4" />
               Add Collection
             </Button>
@@ -371,7 +373,7 @@ export default function Collections({ navigate }: PageProps) {
             <p className="mb-6 text-muted-foreground">
               Add your first collection to start indexing documents.
             </p>
-            <Button onClick={() => navigate("/add-collection")}>
+            <Button onClick={() => setAddDialogOpen(true)}>
               <FolderPlusIcon className="mr-2 size-4" />
               Add Collection
             </Button>
@@ -393,6 +395,13 @@ export default function Collections({ navigate }: PageProps) {
           </div>
         )}
       </main>
+
+      {/* Add collection dialog */}
+      <AddCollectionDialog
+        onOpenChange={setAddDialogOpen}
+        onSuccess={() => void loadCollections()}
+        open={addDialogOpen}
+      />
 
       {/* Remove confirmation dialog */}
       <Dialog
