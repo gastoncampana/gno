@@ -5,6 +5,33 @@ All notable changes to GNO will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-01-02
+
+### Added
+
+- **MCP Write Operations** - AI assistants can now manage collections via MCP
+  - `gno_capture` - Create new markdown documents in collections
+  - `gno_add_collection` - Add folders to the index (async with job tracking)
+  - `gno_sync` - Reindex one or all collections
+  - `gno_remove_collection` - Remove collection from config
+  - `gno_job_status` - Check async job progress
+  - `gno_list_jobs` - List active and recent jobs
+- **Write Tool Gating** - Disabled by default, enable with `--enable-write` or `GNO_MCP_ENABLE_WRITE=1`
+- **Security Protections**
+  - Dangerous root rejection (`/`, `~`, `/etc`, `~/.ssh`) with realpath canonicalization
+  - Path traversal prevention (rejects `../` escapes)
+  - Sensitive subpath blocking (`.ssh`, `.gnupg`, `.git`)
+  - Cross-process locking via OS-backed flock/lockf
+  - Atomic writes (temp + rename pattern)
+- **Core Modules** - Shared utilities for MCP and WebUI
+  - `src/core/validation.ts` - Path and collection validation
+  - `src/core/file-ops.ts` - Atomic file operations
+  - `src/core/file-lock.ts` - Advisory file locking
+  - `src/core/config-mutation.ts` - Config change flow
+  - `src/core/job-manager.ts` - Async job tracking
+- **MCP Documentation** - Updated docs/MCP.md with all new tools, security model, Raycast write-enabled deeplinks
+- **Smoke Test Script** - `scripts/mcp-write-smoke-test.ts` for MCP validation
+
 ## [0.8.6] - 2026-01-02
 
 ### Added
