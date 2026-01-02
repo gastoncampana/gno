@@ -10,12 +10,14 @@ Use GNO as an MCP server for AI assistants like Claude Desktop, Cursor, and othe
 
 MCP (Model Context Protocol) allows AI assistants to access external tools and resources. GNO provides:
 
-- **Tools**: gno_search, gno_vsearch, gno_query, gno_get, gno_multi_get, gno_status
+- **Tools (read)**: gno_search, gno_vsearch, gno_query, gno_get, gno_multi_get, gno_status
+- **Tools (write, opt-in)**: gno_capture, gno_add_collection, gno_sync, gno_remove_collection
+- **Tools (jobs)**: gno_job_status, gno_list_jobs
 - **Resources**: Access documents via `gno://collection/path`
 
-## Design: Retrieval-Only
+## Design: Retrieval-Focused
 
-GNO's MCP tools are **retrieval-only by design**. Unlike the CLI's `gno ask` command (which runs a local LLM to synthesize answers), MCP tools return search results and document content without LLM processing.
+GNO's MCP tools are **retrieval-focused**. The MCP server returns search results and document content; the client LLM synthesizes answers. Write tools enable collection management but do not perform answer synthesis.
 
 **Why?** Claude, Codex, and other AI agents use much more powerful models. Having GNO call a separate (likely smaller) LLM to synthesize answers would be:
 
@@ -29,11 +31,47 @@ GNO's MCP tools are **retrieval-only by design**. Unlike the CLI's `gno ask` com
 2. Client LLM synthesizes the answer from retrieved context
 3. Result: Best retrieval (GNO) + best synthesis (Claude/Codex)
 
+## Security Model
+
+### Write Tool Gating
+
+Write tools are **disabled by default**. Enable with:
+
+```bash
+gno mcp --enable-write
+# or
+GNO_MCP_ENABLE_WRITE=1 gno mcp
+```
+
+Without this flag, only read-only tools are available.
+
+### Collection Root Validation
+
+`gno_add_collection` rejects dangerous paths:
+
+- `/` (root filesystem)
+- `~` alone (entire home directory)
+- System directories (`/etc`, `/usr`, `/bin`, `/var`, `/System`, `/Library`)
+- Hidden config dirs (`~/.config`, `~/.local`, `~/.ssh`, `~/.gnupg`)
+
+### Client Approval
+
+MCP clients prompt for tool approval. Review parameters before confirming write operations.
+
+## Job Session Lifetime
+
+Jobs are stored in memory and tied to the MCP server process:
+
+- Job IDs are only valid within the same running server
+- Polling after server restart returns NOT_FOUND
+- Different MCP processes cannot query each other's jobs
+
 ## Quick Install
 
 Use the CLI to install GNO as an MCP server:
 
 ```bash
+# Read-only (default)
 gno mcp install                           # Claude Desktop (default)
 gno mcp install --target cursor           # Cursor
 gno mcp install --target zed              # Zed
@@ -45,6 +83,15 @@ gno mcp install --target librechat        # LibreChat
 gno mcp install --target claude-code      # Claude Code CLI
 gno mcp install --target codex            # OpenAI Codex CLI
 ```
+
+```bash
+# Write-enabled
+gno mcp install --enable-write                    # Claude Desktop (default)
+gno mcp install --target cursor --enable-write    # Cursor
+gno mcp install --target raycast --enable-write   # Raycast (if supported)
+```
+
+> ⚠️ **Write-enabled mode** allows AI to create documents, add collections, and trigger reindexing. Review tool calls before approving.
 
 ### Scope Options
 
@@ -96,15 +143,25 @@ Use GNO directly in [Raycast AI](https://www.raycast.com/core-features/ai) with 
 2. Configure:
    - **Name**: `GNO`
    - **Command**: `gno`
-   - **Args**: `mcp`
+   - **Args**: `mcp` (read-only) or `mcp --enable-write` (write-enabled)
 
 **Option 2: Via Deeplink**
 
 Open in browser:
 
+Read-only:
+
 ```
 raycast://mcp/install?%7B%22name%22%3A%22GNO%22%2C%22command%22%3A%22gno%22%2C%22args%22%3A%5B%22mcp%22%5D%7D
 ```
+
+Write-enabled:
+
+```
+raycast://mcp/install?%7B%22name%22%3A%22GNO%22%2C%22command%22%3A%22gno%22%2C%22args%22%3A%5B%22mcp%22%2C%22--enable-write%22%5D%7D
+```
+
+> ⚠️ **Write-enabled mode** allows AI to create documents, add collections, and trigger reindexing. Review tool calls before approving.
 
 ### Where to Use GNO
 
@@ -140,6 +197,14 @@ The AI will call GNO tools (gno_query, gno_get) and synthesize answers from your
 @gno get the contents of my project README
 ```
 
+**Write examples** (requires write-enabled mode):
+
+```
+@gno create a note about todays meeting
+@gno add my ~/Projects/docs folder
+@gno refresh the notes collection
+```
+
 **Search depth** — ask for faster or more thorough searches:
 
 ```
@@ -172,12 +237,27 @@ Smaller/weaker models may:
 
 Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
+Read-only:
+
 ```json
 {
   "mcpServers": {
     "gno": {
       "command": "gno",
       "args": ["mcp"]
+    }
+  }
+}
+```
+
+Write-enabled:
+
+```json
+{
+  "mcpServers": {
+    "gno": {
+      "command": "gno",
+      "args": ["mcp", "--enable-write"]
     }
   }
 }
@@ -187,6 +267,8 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
 Add to `~/.cursor/mcp.json`:
 
+Read-only:
+
 ```json
 {
   "mcpServers": {
@@ -198,9 +280,24 @@ Add to `~/.cursor/mcp.json`:
 }
 ```
 
+Write-enabled:
+
+```json
+{
+  "mcpServers": {
+    "gno": {
+      "command": "gno",
+      "args": ["mcp", "--enable-write"]
+    }
+  }
+}
+```
+
 ### Zed
 
 Add to `~/.config/zed/settings.json`:
+
+Read-only:
 
 ```json
 {
@@ -213,9 +310,24 @@ Add to `~/.config/zed/settings.json`:
 }
 ```
 
+Write-enabled:
+
+```json
+{
+  "context_servers": {
+    "gno": {
+      "command": "gno",
+      "args": ["mcp", "--enable-write"]
+    }
+  }
+}
+```
+
 ### Windsurf
 
 Add to `~/.codeium/windsurf/mcp_config.json`:
+
+Read-only:
 
 ```json
 {
@@ -228,9 +340,24 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
 }
 ```
 
+Write-enabled:
+
+```json
+{
+  "mcpServers": {
+    "gno": {
+      "command": "gno",
+      "args": ["mcp", "--enable-write"]
+    }
+  }
+}
+```
+
 ### OpenCode
 
 Add to `~/.config/opencode/config.json`:
+
+Read-only:
 
 ```json
 {
@@ -244,9 +371,25 @@ Add to `~/.config/opencode/config.json`:
 }
 ```
 
+Write-enabled:
+
+```json
+{
+  "mcp": {
+    "gno": {
+      "type": "local",
+      "command": ["gno", "mcp", "--enable-write"],
+      "enabled": true
+    }
+  }
+}
+```
+
 ### Amp
 
 Add to `~/.config/amp/settings.json`:
+
+Read-only:
 
 ```json
 {
@@ -259,9 +402,24 @@ Add to `~/.config/amp/settings.json`:
 }
 ```
 
+Write-enabled:
+
+```json
+{
+  "amp.mcpServers": {
+    "gno": {
+      "command": "gno",
+      "args": ["mcp", "--enable-write"]
+    }
+  }
+}
+```
+
 ### LM Studio
 
 Add to `~/.lmstudio/mcp.json`:
+
+Read-only:
 
 ```json
 {
@@ -274,9 +432,24 @@ Add to `~/.lmstudio/mcp.json`:
 }
 ```
 
+Write-enabled:
+
+```json
+{
+  "mcpServers": {
+    "gno": {
+      "command": "gno",
+      "args": ["mcp", "--enable-write"]
+    }
+  }
+}
+```
+
 ### LibreChat
 
 Add to `librechat.yaml` in your LibreChat project root:
+
+Read-only:
 
 ```yaml
 mcpServers:
@@ -284,6 +457,17 @@ mcpServers:
     command: gno
     args:
       - mcp
+```
+
+Write-enabled:
+
+```yaml
+mcpServers:
+  gno:
+    command: gno
+    args:
+      - mcp
+      - --enable-write
 ```
 
 ## Other MCP Clients
@@ -358,6 +542,30 @@ Check index health.
 
 Returns collection counts, document totals, and health status.
 
+### gno_capture
+
+Create a new document (requires `--enable-write`).
+
+### gno_add_collection
+
+Add a folder to the index (requires `--enable-write`).
+
+### gno_sync
+
+Reindex one or all collections (requires `--enable-write`).
+
+### gno_remove_collection
+
+Remove a collection from config (requires `--enable-write`). Indexed data is retained.
+
+### gno_job_status
+
+Check async job status.
+
+### gno_list_jobs
+
+List active and recent jobs.
+
 ## Resources
 
 Access documents via GNO URIs:
@@ -370,6 +578,13 @@ gno://work/src/main.ts
 Resource format:
 
 - `gno://<collection>/<relative-path>`
+
+## Clarifications
+
+- MCP loads embedding/rerank models for search tools
+- MCP does NOT do answer synthesis
+- Collection names are case-insensitive
+- `tags` field coming in a future release (gno-k1b)
 
 ## Usage Patterns
 
