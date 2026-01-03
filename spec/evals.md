@@ -294,8 +294,8 @@ Controls AI model quality for generation (answers) via `gno models use <preset>`
 
 | Preset   | Gen Model  | Size   | Answer Quality  |
 | -------- | ---------- | ------ | --------------- |
-| slim     | Qwen3-1.7B | ~1GB   | Faster, simpler |
-| balanced | SmolLM3-3B | ~2GB   | Default         |
+| slim     | Qwen3-1.7B | ~1GB   | Default, fast   |
+| balanced | Qwen2.5-3B | ~2GB   | Slightly larger |
 | quality  | Qwen3-4B   | ~2.5GB | Best answers    |
 
 Note: Embedding and reranking models are identical across presets.

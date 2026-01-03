@@ -132,12 +132,13 @@ async function runEval(file: string): Promise<EvalResult | null> {
   });
 
   const rawOutput = await new Response(proc.stdout).text();
+  const rawStderr = await new Response(proc.stderr).text();
   await proc.exited;
 
   // Strip ANSI codes for parsing
   const output = stripAnsi(rawOutput);
 
-  // Parse score from output (e.g., "Score  84%")
+  // Parse score from output (e.g., "Score  84%" or "Score  ✖  (13 failed)")
   const scoreMatch = output.match(/Score\s+(\d+)%/);
   const evalsMatch = output.match(/Evals\s+(\d+)/);
   const durationMatch = output.match(/Duration\s+(\d+)ms/);
@@ -145,6 +146,8 @@ async function runEval(file: string): Promise<EvalResult | null> {
 
   if (!scoreMatch) {
     console.error(`  Failed to parse score from ${file}`);
+    if (rawStderr)
+      console.error(`  stderr: ${stripAnsi(rawStderr).slice(0, 200)}`);
     return null;
   }
 
