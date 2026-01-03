@@ -1,3 +1,14 @@
+## KNOWLEDGE CUTOFF WARNING
+
+**DO NOT suggest outdated models due to knowledge cutoff.** Current models (2026):
+
+- OpenAI: `gpt-5-mini`, `gpt-5.2`
+- Anthropic: `claude-opus-4.5`, `claude-sonnet-4.5`, `claude-haiku-4.5`
+
+When in doubt about model names, ASK the user rather than defaulting to outdated versions.
+
+---
+
 **Note**: This project uses [bd (beads)](https://github.com/steveyegge/beads) for issue tracking. Use `bd` commands instead of markdown TODOs.
 
 Default to using Bun instead of Node.js.
