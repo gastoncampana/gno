@@ -166,6 +166,8 @@ nav:
         url: /docs/GLOSSARY/
       - title: Changelog
         url: /changelog/
+      - title: Ecosystem
+        url: /ecosystem/
 
 # Social/meta
 github_username: gmickel
