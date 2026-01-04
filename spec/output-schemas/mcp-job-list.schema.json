@@ -19,7 +19,7 @@
           },
           "type": {
             "type": "string",
-            "enum": ["add", "sync"]
+            "enum": ["add", "sync", "embed", "index"]
           },
           "startedAt": {
             "type": "string",
@@ -41,7 +41,7 @@
           },
           "type": {
             "type": "string",
-            "enum": ["add", "sync"]
+            "enum": ["add", "sync", "embed", "index"]
           },
           "status": {
             "type": "string",

@@ -33,13 +33,30 @@ const syncResultSchema = z.object({
   totalFilesSkipped: z.number(),
 });
 
+const embedResultSchema = z.object({
+  embedded: z.number(),
+  errors: z.number(),
+});
+
+const indexResultSchema = z.object({
+  sync: syncResultSchema,
+  embed: embedResultSchema,
+});
+
+const typedResultSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("sync"), value: syncResultSchema }),
+  z.object({ kind: z.literal("embed"), value: embedResultSchema }),
+  z.object({ kind: z.literal("index"), value: indexResultSchema }),
+]);
+
 const jobStatusSchema = z.object({
   jobId: z.string(),
-  type: z.enum(["sync", "add"]),
+  type: z.enum(["sync", "add", "embed", "index"]),
   status: z.enum(["running", "completed", "failed"]),
   startedAt: z.string(),
   completedAt: z.string().optional(),
   result: syncResultSchema.optional(),
+  typedResult: typedResultSchema.optional(),
   error: z.string().optional(),
   serverInstanceId: z.string().optional(),
 });
