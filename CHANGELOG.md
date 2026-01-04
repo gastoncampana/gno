@@ -5,6 +5,15 @@ All notable changes to GNO will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.1] - 2026-01-04
+
+### Fixed
+
+- **Tailwind v4 semantic colors** - Add `@theme` directive to generate `bg-card`, `bg-muted`, `text-foreground` etc. utilities (previously silently failing)
+- **Tag autocomplete** - Substring matching (typing "fix" now finds "fixtures"), retry on fetch failure, re-filter when tags load
+- **POST /api/docs URI** - Return `gno://` URI instead of `file://` for correct navigation
+- **CodeMirrorEditor** - Migrate to React 19 ref-as-prop pattern
+
 ## [0.10.0] - 2026-01-04
 
 ### Added
