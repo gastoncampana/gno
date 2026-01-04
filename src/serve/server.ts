@@ -158,20 +158,20 @@ export async function startServer(
   // Use holder pattern to allow hot-reloading presets
   const ctx = await createServerContext(store, config);
 
-  // Create embed scheduler for debounced background embedding
-  const preset = getActivePreset(config);
-  const scheduler = createEmbedScheduler({
-    db: store.getRawDb(),
-    embedPort: ctx.embedPort,
-    vectorIndex: ctx.vectorIndex,
-    modelUri: preset.embed,
-  });
-
   const ctxHolder: ContextHolder = {
     current: ctx,
     config, // Keep original config for reloading
-    scheduler,
+    scheduler: null, // Will be set below
   };
+
+  // Create embed scheduler with getters (survives context/preset reloads)
+  const scheduler = createEmbedScheduler({
+    db: store.getRawDb(),
+    getEmbedPort: () => ctxHolder.current.embedPort,
+    getVectorIndex: () => ctxHolder.current.vectorIndex,
+    getModelUri: () => getActivePreset(ctxHolder.config).embed,
+  });
+  ctxHolder.scheduler = scheduler;
 
   // Shutdown controller for clean lifecycle
   const shutdownController = new AbortController();

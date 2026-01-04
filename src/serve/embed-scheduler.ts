@@ -38,9 +38,12 @@ export interface EmbedResult {
 
 export interface EmbedSchedulerDeps {
   db: Database;
-  embedPort: EmbeddingPort | null;
-  vectorIndex: VectorIndexPort | null;
-  modelUri: string;
+  /** Getter for current embed port (survives context reloads) */
+  getEmbedPort: () => EmbeddingPort | null;
+  /** Getter for current vector index (survives context reloads) */
+  getVectorIndex: () => VectorIndexPort | null;
+  /** Getter for current model URI (survives preset changes) */
+  getModelUri: () => string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -63,17 +66,18 @@ export interface EmbedScheduler {
 
 /**
  * Create an embed scheduler for debounced background embedding.
- * Returns null if no embedding port available.
+ * Uses getters to resolve dependencies at execution time (survives context reloads).
  */
 export function createEmbedScheduler(deps: EmbedSchedulerDeps): EmbedScheduler {
-  const { db, embedPort, vectorIndex, modelUri } = deps;
+  const { db, getEmbedPort, getVectorIndex, getModelUri } = deps;
 
   // State
-  const pendingDocIds = new Set<string>();
+  let pendingCount = 0; // Track pending triggers (not actual docIds - we embed full backlog)
   let timer: ReturnType<typeof setTimeout> | null = null;
   let running = false;
   let needsRerun = false;
   let firstPendingAt: number | null = null;
+  let nextRunAt: number | null = null; // Accurate timer due time
   let disposed = false;
 
   const stats = createVectorStatsPort(db);
@@ -86,6 +90,11 @@ export function createEmbedScheduler(deps: EmbedSchedulerDeps): EmbedScheduler {
    * 3. Simpler to just embed all backlog when triggered
    */
   async function runEmbed(): Promise<EmbedResult> {
+    // Resolve dependencies at execution time (survives context reloads)
+    const embedPort = getEmbedPort();
+    const vectorIndex = getVectorIndex();
+    const modelUri = getModelUri();
+
     if (!embedPort || !vectorIndex) {
       return { embedded: 0, errors: 0 };
     }
@@ -143,7 +152,7 @@ export function createEmbedScheduler(deps: EmbedSchedulerDeps): EmbedScheduler {
           continue;
         }
 
-        // Store vectors
+        // Store vectors with current model URI
         const vectors: VectorRow[] = batch.map(
           (b: BacklogItem, idx: number) => ({
             mirrorHash: b.mirrorHash,
@@ -177,7 +186,13 @@ export function createEmbedScheduler(deps: EmbedSchedulerDeps): EmbedScheduler {
    * Schedule or reschedule the debounced embed run.
    */
   function scheduleRun(): void {
-    if (disposed || running) {
+    if (disposed) {
+      return;
+    }
+
+    // If currently running, mark for rerun instead of scheduling
+    if (running) {
+      needsRerun = true;
       return;
     }
 
@@ -202,7 +217,11 @@ export function createEmbedScheduler(deps: EmbedSchedulerDeps): EmbedScheduler {
       clearTimeout(timer);
     }
 
+    // Track accurate due time
+    nextRunAt = now + delay;
+
     timer = setTimeout(() => {
+      nextRunAt = null;
       void executeRun();
     }, delay);
   }
@@ -218,21 +237,23 @@ export function createEmbedScheduler(deps: EmbedSchedulerDeps): EmbedScheduler {
 
     running = true;
     timer = null;
+    nextRunAt = null;
+
+    // Clear pending state at START so new notifications accumulate
+    pendingCount = 0;
+    firstPendingAt = null;
 
     try {
       const result = await runEmbed();
 
-      // Clear pending state
-      pendingDocIds.clear();
-      firstPendingAt = null;
-
-      // Check if we need to rerun (more docs added while running)
-      if (needsRerun && !disposed) {
+      // Check if we need to rerun (notifications arrived while running)
+      if ((needsRerun || pendingCount > 0) && !disposed) {
         needsRerun = false;
-        // Schedule another run
-        if (pendingDocIds.size > 0) {
-          scheduleRun();
+        // Set firstPendingAt if we have pending work
+        if (pendingCount > 0 && firstPendingAt === null) {
+          firstPendingAt = Date.now();
         }
+        scheduleRun();
       }
 
       return result;
@@ -243,26 +264,25 @@ export function createEmbedScheduler(deps: EmbedSchedulerDeps): EmbedScheduler {
 
   return {
     notifySyncComplete(docIds: string[]): void {
-      if (disposed || !embedPort) {
+      // Resolve embedPort at call time to check availability
+      if (disposed || !getEmbedPort()) {
         return;
       }
 
       // Track first pending time for max-wait
-      if (pendingDocIds.size === 0) {
+      if (pendingCount === 0 && firstPendingAt === null) {
         firstPendingAt = Date.now();
       }
 
-      // Add to pending set
-      for (const id of docIds) {
-        pendingDocIds.add(id);
-      }
+      // Count pending triggers (we don't track individual docIds)
+      pendingCount += docIds.length;
 
-      // Schedule/reschedule debounced run
+      // Schedule/reschedule debounced run (or mark needsRerun if running)
       scheduleRun();
     },
 
     async triggerNow(): Promise<EmbedResult | null> {
-      if (disposed || !embedPort) {
+      if (disposed || !getEmbedPort()) {
         return null;
       }
 
@@ -270,6 +290,7 @@ export function createEmbedScheduler(deps: EmbedSchedulerDeps): EmbedScheduler {
       if (timer) {
         clearTimeout(timer);
         timer = null;
+        nextRunAt = null;
       }
 
       // If already running, mark for rerun
@@ -283,14 +304,13 @@ export function createEmbedScheduler(deps: EmbedSchedulerDeps): EmbedScheduler {
 
     getState(): EmbedSchedulerState {
       const state: EmbedSchedulerState = {
-        pendingDocCount: pendingDocIds.size,
+        pendingDocCount: pendingCount,
         running,
       };
 
-      if (timer && firstPendingAt !== null) {
-        const elapsed = Date.now() - firstPendingAt;
-        const remaining = Math.min(DEBOUNCE_MS, MAX_WAIT_MS - elapsed);
-        state.nextRunAt = Date.now() + Math.max(0, remaining);
+      // Use accurate nextRunAt from timer scheduling
+      if (nextRunAt !== null) {
+        state.nextRunAt = nextRunAt;
       }
 
       return state;
@@ -301,6 +321,7 @@ export function createEmbedScheduler(deps: EmbedSchedulerDeps): EmbedScheduler {
       if (timer) {
         clearTimeout(timer);
         timer = null;
+        nextRunAt = null;
       }
     },
   };

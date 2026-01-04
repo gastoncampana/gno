@@ -65,11 +65,12 @@ describe("EmbedScheduler", () => {
   });
 
   test("getState returns initial state", () => {
+    const embedPort = createMockEmbedPort();
     const scheduler = createEmbedScheduler({
       db: createMockDb(),
-      embedPort: createMockEmbedPort(),
-      vectorIndex: createMockVectorIndex(),
-      modelUri: "test-model",
+      getEmbedPort: () => embedPort,
+      getVectorIndex: () => createMockVectorIndex(),
+      getModelUri: () => "test-model",
     });
 
     const state = scheduler.getState();
@@ -80,12 +81,13 @@ describe("EmbedScheduler", () => {
     scheduler.dispose();
   });
 
-  test("notifySyncComplete adds docIds to pending", () => {
+  test("notifySyncComplete adds docIds to pending count", () => {
+    const embedPort = createMockEmbedPort();
     const scheduler = createEmbedScheduler({
       db: createMockDb(),
-      embedPort: createMockEmbedPort(),
-      vectorIndex: createMockVectorIndex(),
-      modelUri: "test-model",
+      getEmbedPort: () => embedPort,
+      getVectorIndex: () => createMockVectorIndex(),
+      getModelUri: () => "test-model",
     });
 
     scheduler.notifySyncComplete(["doc1", "doc2"]);
@@ -96,29 +98,32 @@ describe("EmbedScheduler", () => {
     scheduler.dispose();
   });
 
-  test("notifySyncComplete deduplicates docIds", () => {
+  test("notifySyncComplete accumulates counts", () => {
+    const embedPort = createMockEmbedPort();
     const scheduler = createEmbedScheduler({
       db: createMockDb(),
-      embedPort: createMockEmbedPort(),
-      vectorIndex: createMockVectorIndex(),
-      modelUri: "test-model",
+      getEmbedPort: () => embedPort,
+      getVectorIndex: () => createMockVectorIndex(),
+      getModelUri: () => "test-model",
     });
 
     scheduler.notifySyncComplete(["doc1", "doc2"]);
     scheduler.notifySyncComplete(["doc2", "doc3"]);
 
     const state = scheduler.getState();
-    expect(state.pendingDocCount).toBe(3);
+    // Now counts rather than deduplicates
+    expect(state.pendingDocCount).toBe(4);
 
     scheduler.dispose();
   });
 
   test("triggerNow returns result immediately", async () => {
+    const embedPort = createMockEmbedPort();
     const scheduler = createEmbedScheduler({
       db: createMockDb(),
-      embedPort: createMockEmbedPort(),
-      vectorIndex: createMockVectorIndex(),
-      modelUri: "test-model",
+      getEmbedPort: () => embedPort,
+      getVectorIndex: () => createMockVectorIndex(),
+      getModelUri: () => "test-model",
     });
 
     scheduler.notifySyncComplete(["doc1"]);
@@ -138,9 +143,9 @@ describe("EmbedScheduler", () => {
   test("triggerNow returns null without embedPort", async () => {
     const scheduler = createEmbedScheduler({
       db: createMockDb(),
-      embedPort: null,
-      vectorIndex: null,
-      modelUri: "test-model",
+      getEmbedPort: () => null,
+      getVectorIndex: () => null,
+      getModelUri: () => "test-model",
     });
 
     const result = await scheduler.triggerNow();
@@ -152,9 +157,9 @@ describe("EmbedScheduler", () => {
   test("notifySyncComplete does nothing without embedPort", () => {
     const scheduler = createEmbedScheduler({
       db: createMockDb(),
-      embedPort: null,
-      vectorIndex: null,
-      modelUri: "test-model",
+      getEmbedPort: () => null,
+      getVectorIndex: () => null,
+      getModelUri: () => "test-model",
     });
 
     scheduler.notifySyncComplete(["doc1"]);
@@ -165,12 +170,13 @@ describe("EmbedScheduler", () => {
     scheduler.dispose();
   });
 
-  test("dispose clears pending state", async () => {
+  test("dispose clears timer", () => {
+    const embedPort = createMockEmbedPort();
     const scheduler = createEmbedScheduler({
       db: createMockDb(),
-      embedPort: createMockEmbedPort(),
-      vectorIndex: createMockVectorIndex(),
-      modelUri: "test-model",
+      getEmbedPort: () => embedPort,
+      getVectorIndex: () => createMockVectorIndex(),
+      getModelUri: () => "test-model",
     });
 
     scheduler.notifySyncComplete(["doc1", "doc2"]);
@@ -179,15 +185,17 @@ describe("EmbedScheduler", () => {
     // After dispose, notifySyncComplete should be no-op
     scheduler.notifySyncComplete(["doc3"]);
     const state = scheduler.getState();
-    expect(state.pendingDocCount).toBe(2); // Still 2 from before dispose
+    // Count doesn't change after dispose
+    expect(state.pendingDocCount).toBe(2);
   });
 
   test("scheduler reports nextRunAt when timer is set", () => {
+    const embedPort = createMockEmbedPort();
     const scheduler = createEmbedScheduler({
       db: createMockDb(),
-      embedPort: createMockEmbedPort(),
-      vectorIndex: createMockVectorIndex(),
-      modelUri: "test-model",
+      getEmbedPort: () => embedPort,
+      getVectorIndex: () => createMockVectorIndex(),
+      getModelUri: () => "test-model",
     });
 
     scheduler.notifySyncComplete(["doc1"]);
@@ -195,6 +203,31 @@ describe("EmbedScheduler", () => {
     const state = scheduler.getState();
     expect(state.nextRunAt).toBeDefined();
     expect(state.nextRunAt).toBeGreaterThan(Date.now());
+
+    scheduler.dispose();
+  });
+
+  test("getters are called at execution time (survives context reload)", async () => {
+    let currentPort: EmbeddingPort | null = createMockEmbedPort();
+    let currentModel = "model-v1";
+
+    const scheduler = createEmbedScheduler({
+      db: createMockDb(),
+      getEmbedPort: () => currentPort,
+      getVectorIndex: () => createMockVectorIndex(),
+      getModelUri: () => currentModel,
+    });
+
+    // Simulate context reload
+    currentPort = createMockEmbedPort();
+    currentModel = "model-v2";
+
+    scheduler.notifySyncComplete(["doc1"]);
+    const result = await scheduler.triggerNow();
+
+    // Should still work after "reload"
+    expect(result).not.toBeNull();
+    expect(result?.embedded).toBe(0);
 
     scheduler.dispose();
   });
