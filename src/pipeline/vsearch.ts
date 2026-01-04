@@ -91,8 +91,12 @@ export async function searchVectorWithEmbedding(
     }
   }
 
-  // Cache docs to avoid N+1 queries
-  const docByMirrorHash = await buildDocumentMap(store, options.collection);
+  // Cache docs to avoid N+1 queries (filtered by collection and tags)
+  const docByMirrorHash = await buildDocumentMap(store, {
+    collection: options.collection,
+    tagsAll: options.tagsAll,
+    tagsAny: options.tagsAny,
+  });
 
   // Pre-fetch all chunks in one batch query (eliminates N+1)
   const uniqueHashes = [...new Set(vecResults.map((v) => v.mirrorHash))];
@@ -311,35 +315,81 @@ interface DocumentInfo {
 // Helper: Build document map by mirrorHash
 // ─────────────────────────────────────────────────────────────────────────────
 
+interface DocumentMapOptions {
+  collection?: string;
+  tagsAll?: string[];
+  tagsAny?: string[];
+}
+
 async function buildDocumentMap(
   store: StorePort,
-  collectionFilter?: string
+  options: DocumentMapOptions = {}
 ): Promise<Map<string, DocumentInfo>> {
   const result = new Map<string, DocumentInfo>();
 
-  const docs = await store.listDocuments(collectionFilter);
+  const docs = await store.listDocuments(options.collection);
   if (!docs.ok) {
     return result;
   }
 
-  for (const doc of docs.value) {
-    if (doc.mirrorHash && doc.active) {
-      result.set(doc.mirrorHash, {
-        docid: doc.docid,
-        uri: doc.uri,
-        title: doc.title,
-        collection: doc.collection,
-        relPath: doc.relPath,
-        sourceHash: doc.sourceHash,
-        sourceMime: doc.sourceMime,
-        sourceExt: doc.sourceExt,
-        sourceMtime: doc.sourceMtime,
-        sourceSize: doc.sourceSize,
-        mirrorHash: doc.mirrorHash,
-        converterId: doc.converterId,
-        converterVersion: doc.converterVersion,
-      });
+  // Filter active docs with mirrorHash
+  const activeDocs = docs.value.filter((d) => d.mirrorHash && d.active);
+
+  // Apply tag filters if specified (batch fetch to avoid N+1)
+  const needsTagFilter = options.tagsAll?.length || options.tagsAny?.length;
+  let allowedDocIds: Set<number> | null = null;
+
+  if (needsTagFilter && activeDocs.length > 0) {
+    const docIds = activeDocs.map((d) => d.id);
+    const tagsResult = await store.getTagsBatch(docIds);
+
+    if (tagsResult.ok) {
+      allowedDocIds = new Set<number>();
+      const tagsByDocId = tagsResult.value;
+
+      for (const doc of activeDocs) {
+        const docTags = new Set(
+          (tagsByDocId.get(doc.id) ?? []).map((t) => t.tag)
+        );
+
+        // tagsAll: doc must have ALL specified tags
+        if (options.tagsAll?.length) {
+          const hasAll = options.tagsAll.every((t) => docTags.has(t));
+          if (!hasAll) continue;
+        }
+
+        // tagsAny: doc must have at least one of the specified tags
+        if (options.tagsAny?.length) {
+          const hasAny = options.tagsAny.some((t) => docTags.has(t));
+          if (!hasAny) continue;
+        }
+
+        allowedDocIds.add(doc.id);
+      }
     }
+  }
+
+  for (const doc of activeDocs) {
+    // Skip if tag filter excluded this doc
+    if (allowedDocIds !== null && !allowedDocIds.has(doc.id)) {
+      continue;
+    }
+
+    result.set(doc.mirrorHash!, {
+      docid: doc.docid,
+      uri: doc.uri,
+      title: doc.title,
+      collection: doc.collection,
+      relPath: doc.relPath,
+      sourceHash: doc.sourceHash,
+      sourceMime: doc.sourceMime,
+      sourceExt: doc.sourceExt,
+      sourceMtime: doc.sourceMtime,
+      sourceSize: doc.sourceSize,
+      mirrorHash: doc.mirrorHash,
+      converterId: doc.converterId,
+      converterVersion: doc.converterVersion,
+    });
   }
 
   return result;

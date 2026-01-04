@@ -14,6 +14,7 @@ import {
   PRODUCT_NAME,
   VERSION,
 } from "../app/constants";
+import { parseAndValidateTagFilter } from "../core/tags";
 import { setColorsEnabled } from "./colors";
 import {
   applyGlobalOptions,
@@ -169,6 +170,7 @@ export function createProgram(): Command {
   wireOnboardingCommands(program);
   wireManagementCommands(program);
   wireRetrievalCommands(program);
+  wireTagsCommands(program);
   wireMcpCommand(program);
   wireSkillCommands(program);
   wireServeCommand(program);
@@ -198,6 +200,8 @@ function wireSearchCommands(program: Command): void {
     .option("--min-score <num>", "minimum score threshold")
     .option("-c, --collection <name>", "filter by collection")
     .option("--lang <code>", "language filter/hint (BCP-47)")
+    .option("--tags-all <tags>", "require ALL tags (comma-separated)")
+    .option("--tags-any <tags>", "require ANY tag (comma-separated)")
     .option("--full", "include full content")
     .option("--line-numbers", "include line numbers in output")
     .option("--json", "JSON output")
@@ -220,6 +224,23 @@ function wireSearchCommands(program: Command): void {
         throw new CliError("VALIDATION", "--min-score must be between 0 and 1");
       }
 
+      // Parse and validate tag filters
+      let tagsAll: string[] | undefined;
+      let tagsAny: string[] | undefined;
+      try {
+        tagsAll = cmdOpts.tagsAll
+          ? parseAndValidateTagFilter(cmdOpts.tagsAll as string)
+          : undefined;
+        tagsAny = cmdOpts.tagsAny
+          ? parseAndValidateTagFilter(cmdOpts.tagsAny as string)
+          : undefined;
+      } catch (error) {
+        throw new CliError(
+          "VALIDATION",
+          error instanceof Error ? error.message : "Invalid tag filter"
+        );
+      }
+
       const limit = cmdOpts.limit
         ? parsePositiveInt("limit", cmdOpts.limit)
         : getDefaultLimit(format);
@@ -230,6 +251,8 @@ function wireSearchCommands(program: Command): void {
         minScore,
         collection: cmdOpts.collection as string | undefined,
         lang: cmdOpts.lang as string | undefined,
+        tagsAll,
+        tagsAny,
         full: Boolean(cmdOpts.full),
         lineNumbers: Boolean(cmdOpts.lineNumbers),
         json: format === "json",
@@ -267,6 +290,8 @@ function wireSearchCommands(program: Command): void {
     .option("--min-score <num>", "minimum score threshold")
     .option("-c, --collection <name>", "filter by collection")
     .option("--lang <code>", "language filter/hint (BCP-47)")
+    .option("--tags-all <tags>", "require ALL tags (comma-separated)")
+    .option("--tags-any <tags>", "require ANY tag (comma-separated)")
     .option("--full", "include full content")
     .option("--line-numbers", "include line numbers in output")
     .option("--json", "JSON output")
@@ -289,6 +314,23 @@ function wireSearchCommands(program: Command): void {
         throw new CliError("VALIDATION", "--min-score must be between 0 and 1");
       }
 
+      // Parse and validate tag filters
+      let tagsAll: string[] | undefined;
+      let tagsAny: string[] | undefined;
+      try {
+        tagsAll = cmdOpts.tagsAll
+          ? parseAndValidateTagFilter(cmdOpts.tagsAll as string)
+          : undefined;
+        tagsAny = cmdOpts.tagsAny
+          ? parseAndValidateTagFilter(cmdOpts.tagsAny as string)
+          : undefined;
+      } catch (error) {
+        throw new CliError(
+          "VALIDATION",
+          error instanceof Error ? error.message : "Invalid tag filter"
+        );
+      }
+
       const limit = cmdOpts.limit
         ? parsePositiveInt("limit", cmdOpts.limit)
         : getDefaultLimit(format);
@@ -299,6 +341,8 @@ function wireSearchCommands(program: Command): void {
         minScore,
         collection: cmdOpts.collection as string | undefined,
         lang: cmdOpts.lang as string | undefined,
+        tagsAll,
+        tagsAny,
         full: Boolean(cmdOpts.full),
         lineNumbers: Boolean(cmdOpts.lineNumbers),
         json: format === "json",
@@ -331,6 +375,8 @@ function wireSearchCommands(program: Command): void {
     .option("--min-score <num>", "minimum score threshold")
     .option("-c, --collection <name>", "filter by collection")
     .option("--lang <code>", "language hint (BCP-47)")
+    .option("--tags-all <tags>", "require ALL tags (comma-separated)")
+    .option("--tags-any <tags>", "require ANY tag (comma-separated)")
     .option("--full", "include full content")
     .option("--line-numbers", "include line numbers in output")
     .option("--fast", "skip expansion and reranking (fastest, ~0.7s)")
@@ -356,6 +402,23 @@ function wireSearchCommands(program: Command): void {
       const minScore = parseOptionalFloat("min-score", cmdOpts.minScore);
       if (minScore !== undefined && (minScore < 0 || minScore > 1)) {
         throw new CliError("VALIDATION", "--min-score must be between 0 and 1");
+      }
+
+      // Parse and validate tag filters
+      let tagsAll: string[] | undefined;
+      let tagsAny: string[] | undefined;
+      try {
+        tagsAll = cmdOpts.tagsAll
+          ? parseAndValidateTagFilter(cmdOpts.tagsAll as string)
+          : undefined;
+        tagsAny = cmdOpts.tagsAny
+          ? parseAndValidateTagFilter(cmdOpts.tagsAny as string)
+          : undefined;
+      } catch (error) {
+        throw new CliError(
+          "VALIDATION",
+          error instanceof Error ? error.message : "Invalid tag filter"
+        );
       }
 
       const limit = cmdOpts.limit
@@ -392,6 +455,8 @@ function wireSearchCommands(program: Command): void {
         minScore,
         collection: cmdOpts.collection as string | undefined,
         lang: cmdOpts.lang as string | undefined,
+        tagsAll,
+        tagsAny,
         full: Boolean(cmdOpts.full),
         lineNumbers: Boolean(cmdOpts.lineNumbers),
         noExpand,
@@ -1399,6 +1464,108 @@ function wireSkillCommands(program: Command): void {
         json: Boolean(cmdOpts.json),
       });
     });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tags Commands (list, add, rm)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function wireTagsCommands(program: Command): void {
+  const tagsCmd = program.command("tags").description("Manage document tags");
+
+  // tags list
+  tagsCmd
+    .command("list", { isDefault: true })
+    .description("List all tags with document counts")
+    .option("-c, --collection <name>", "filter by collection")
+    .option("--prefix <prefix>", "filter by tag prefix")
+    .option("--json", "JSON output")
+    .option("--md", "Markdown output")
+    .action(async (cmdOpts: Record<string, unknown>) => {
+      const format = getFormat(cmdOpts);
+      assertFormatSupported(CMD.tagsList, format);
+      const globals = getGlobals();
+
+      const { tagsList, formatTagsList } = await import("./commands/tags");
+      const result = await tagsList({
+        configPath: globals.config,
+        collection: cmdOpts.collection as string | undefined,
+        prefix: cmdOpts.prefix as string | undefined,
+        json: format === "json",
+        md: format === "md",
+      });
+
+      if (!result.success) {
+        throw new CliError(
+          result.isValidation ? "VALIDATION" : "RUNTIME",
+          result.error
+        );
+      }
+
+      const output = formatTagsList(result, {
+        json: format === "json",
+        md: format === "md",
+      });
+      await writeOutput(output, format);
+    });
+
+  // tags add <doc> <tag>
+  tagsCmd
+    .command("add <doc> <tag>")
+    .description("Add a tag to a document")
+    .option("--json", "JSON output")
+    .action(
+      async (doc: string, tag: string, cmdOpts: Record<string, unknown>) => {
+        const format = getFormat(cmdOpts);
+        const globals = getGlobals();
+
+        const { tagsAdd, formatTagsAdd } = await import("./commands/tags");
+        const result = await tagsAdd(doc, tag, {
+          configPath: globals.config,
+          json: format === "json",
+        });
+
+        if (!result.success) {
+          throw new CliError(
+            result.isValidation ? "VALIDATION" : "RUNTIME",
+            result.error
+          );
+        }
+
+        process.stdout.write(
+          `${formatTagsAdd(result, { json: format === "json" })}\n`
+        );
+      }
+    );
+
+  // tags rm <doc> <tag>
+  tagsCmd
+    .command("rm <doc> <tag>")
+    .description("Remove a tag from a document")
+    .option("--json", "JSON output")
+    .action(
+      async (doc: string, tag: string, cmdOpts: Record<string, unknown>) => {
+        const format = getFormat(cmdOpts);
+        const globals = getGlobals();
+
+        const { tagsRm, formatTagsRm } = await import("./commands/tags");
+        const result = await tagsRm(doc, tag, {
+          configPath: globals.config,
+          json: format === "json",
+        });
+
+        if (!result.success) {
+          throw new CliError(
+            result.isValidation ? "VALIDATION" : "RUNTIME",
+            result.error
+          );
+        }
+
+        process.stdout.write(
+          `${formatTagsRm(result, { json: format === "json" })}\n`
+        );
+      }
+    );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
