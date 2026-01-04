@@ -12,6 +12,7 @@ const syncResultSchema = z.object({
       filesProcessed: z.number(),
       filesAdded: z.number(),
       filesUpdated: z.number(),
+      filesUnchanged: z.number(),
       filesErrored: z.number(),
       filesSkipped: z.number(),
       filesMarkedInactive: z.number(),
@@ -58,8 +59,10 @@ const jobStatusSchema = z.object({
   result: syncResultSchema.optional(),
   typedResult: typedResultSchema.optional(),
   error: z.string().optional(),
-  serverInstanceId: z.string().optional(),
+  serverInstanceId: z.string().uuid(),
 });
+
+const testUUID = "550e8400-e29b-41d4-a716-446655440000";
 
 describe("gno_job_status schema", () => {
   test("running job status schema", () => {
@@ -68,6 +71,7 @@ describe("gno_job_status schema", () => {
       type: "sync",
       status: "running",
       startedAt: new Date().toISOString(),
+      serverInstanceId: testUUID,
     };
 
     const result = jobStatusSchema.safeParse(running);
@@ -81,7 +85,7 @@ describe("gno_job_status schema", () => {
       status: "completed",
       startedAt: new Date().toISOString(),
       completedAt: new Date().toISOString(),
-      serverInstanceId: "srv-1",
+      serverInstanceId: testUUID,
       result: {
         collections: [
           {
@@ -89,6 +93,7 @@ describe("gno_job_status schema", () => {
             filesProcessed: 10,
             filesAdded: 4,
             filesUpdated: 2,
+            filesUnchanged: 0,
             filesErrored: 1,
             filesSkipped: 3,
             filesMarkedInactive: 0,
@@ -117,6 +122,7 @@ describe("gno_job_status schema", () => {
       startedAt: new Date().toISOString(),
       completedAt: new Date().toISOString(),
       error: "Boom",
+      serverInstanceId: testUUID,
     };
 
     const result = jobStatusSchema.safeParse(failed);
