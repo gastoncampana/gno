@@ -65,17 +65,18 @@ describe("markdownConverter", () => {
     }
   });
 
-  test("returns undefined title when no heading", async () => {
+  test("falls back to filename when no heading", async () => {
     const content = "No headings here.";
     const input = makeInput({
       bytes: new TextEncoder().encode(content),
+      relativePath: "my-document.md",
     });
 
     const result = await markdownConverter.convert(input);
 
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.title).toBeUndefined();
+      expect(result.value.title).toBe("my-document");
     }
   });
 });

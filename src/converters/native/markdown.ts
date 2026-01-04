@@ -5,6 +5,7 @@
 
 import type { Converter, ConvertInput, ConvertResult } from "../types";
 
+import { basenameWithoutExt } from "../path";
 import { NATIVE_VERSIONS } from "../versions";
 
 const CONVERTER_ID = "native/markdown" as const;
@@ -96,8 +97,9 @@ export const markdownConverter: Converter = {
       text = text.slice(1);
     }
 
-    // Extract title from first heading
-    const title = extractFirstHeading(text);
+    // Extract title from first heading, fall back to filename
+    const title =
+      extractFirstHeading(text) || basenameWithoutExt(input.relativePath);
 
     // NOTE: Do NOT canonicalize here - pipeline.ts handles all normalization
     return Promise.resolve({
