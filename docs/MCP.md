@@ -10,7 +10,7 @@ Use GNO as an MCP server for AI assistants like Claude Desktop, Cursor, and othe
 
 MCP (Model Context Protocol) allows AI assistants to access external tools and resources. GNO provides:
 
-- **Tools (read)**: gno_search, gno_vsearch, gno_query, gno_get, gno_multi_get, gno_status, gno_list_tags
+- **Tools (read)**: gno_search, gno_vsearch, gno_query, gno_get, gno_multi_get, gno_status, gno_list_tags, gno_links, gno_backlinks, gno_similar
 - **Tools (write, opt-in)**: gno_capture, gno_add_collection, gno_sync, gno_embed, gno_index, gno_remove_collection
 - **Tools (jobs)**: gno_job_status, gno_list_jobs
 - **Resources**: Access documents via `gno://collection/path`
@@ -609,6 +609,48 @@ prefix: "project"    # Optional: filter by tag prefix
 ```
 
 Returns tags with counts for faceted filtering.
+
+### gno_links
+
+Get outgoing links from a document.
+
+```
+ref: "notes/readme.md"  # Document reference (URI, collection/path, or #docid)
+type: "wiki"            # Optional: filter by link type ("wiki" or "markdown")
+```
+
+Returns all outgoing links from the document, including wiki links (`[[Target]]`) and markdown links (`[text](path.md)`).
+
+### gno_backlinks
+
+Get documents that link TO this document.
+
+```
+ref: "notes/target.md"    # Target document reference
+collection: "notes"       # Optional: filter source documents by collection
+```
+
+Returns all documents that reference the target document. Useful for discovering related content and navigating document graphs.
+
+### gno_similar
+
+Find semantically similar documents using vector embeddings.
+
+```
+ref: "notes/readme.md"     # Source document reference
+limit: 5                   # Max results (1-50, default: 5)
+threshold: 0.7             # Min similarity score (0-1)
+crossCollection: false     # Include docs from other collections (default: false)
+```
+
+Uses document embeddings to find semantically related content. The algorithm:
+
+1. Retrieves embeddings for all chunks of the source document
+2. Computes the average embedding
+3. Searches for nearest neighbors using sqlite-vec
+4. Returns top N similar documents (excluding the source itself)
+
+**Note**: Requires documents to be embedded (`gno embed` or `gno index`). Vector search must be available (sqlite-vec installed).
 
 ## Resources
 

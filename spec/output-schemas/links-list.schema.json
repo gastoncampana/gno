@@ -1,0 +1,115 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "gno://schemas/links-list@1.0",
+  "title": "GNO Links List",
+  "description": "List of outgoing links from a document",
+  "type": "object",
+  "required": ["links", "meta"],
+  "properties": {
+    "links": {
+      "type": "array",
+      "description": "List of outgoing links",
+      "items": {
+        "type": "object",
+        "required": ["targetRef", "linkType", "startLine", "startCol"],
+        "properties": {
+          "targetRef": {
+            "type": "string",
+            "description": "Target reference (path or wiki name)"
+          },
+          "targetRefNorm": {
+            "type": "string",
+            "description": "Normalized target reference for matching"
+          },
+          "targetAnchor": {
+            "type": "string",
+            "description": "Target anchor/fragment without #"
+          },
+          "targetCollection": {
+            "type": "string",
+            "description": "Explicit collection prefix"
+          },
+          "linkType": {
+            "type": "string",
+            "enum": ["wiki", "markdown"],
+            "description": "Link type"
+          },
+          "linkText": {
+            "type": "string",
+            "description": "Display text (truncated 256 graphemes)"
+          },
+          "startLine": {
+            "type": "integer",
+            "description": "1-based line number",
+            "minimum": 1
+          },
+          "startCol": {
+            "type": "integer",
+            "description": "1-based column",
+            "minimum": 1
+          },
+          "endLine": {
+            "type": "integer",
+            "description": "1-based end line",
+            "minimum": 1
+          },
+          "endCol": {
+            "type": "integer",
+            "description": "1-based end column",
+            "minimum": 1
+          },
+          "source": {
+            "type": "string",
+            "enum": ["parsed", "user", "suggested"],
+            "description": "Source of the link"
+          },
+          "resolved": {
+            "type": "boolean",
+            "description": "Whether target document exists in index"
+          },
+          "resolvedDocid": {
+            "type": "string",
+            "description": "Docid of resolved target document"
+          },
+          "resolvedUri": {
+            "type": "string",
+            "description": "URI of resolved target document"
+          }
+        }
+      }
+    },
+    "meta": {
+      "type": "object",
+      "required": ["docid", "totalLinks"],
+      "properties": {
+        "docid": {
+          "type": "string",
+          "description": "Source document ID"
+        },
+        "uri": {
+          "type": "string",
+          "description": "Source document URI"
+        },
+        "title": {
+          "type": "string",
+          "description": "Source document title"
+        },
+        "totalLinks": {
+          "type": "integer",
+          "description": "Total number of outgoing links",
+          "minimum": 0
+        },
+        "resolvedCount": {
+          "type": "integer",
+          "description": "Number of links that resolved to existing documents",
+          "minimum": 0
+        },
+        "typeFilter": {
+          "type": "string",
+          "enum": ["wiki", "markdown"],
+          "description": "Link type filter applied"
+        }
+      }
+    }
+  }
+}

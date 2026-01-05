@@ -199,8 +199,10 @@ export interface DocLinkRow {
 
 /** Backlink row from DB (document linking TO target) */
 export interface BacklinkRow {
-  /** Source document ID */
+  /** Source document internal ID */
   sourceDocId: number;
+  /** Source document docid (#hex) */
+  sourceDocid: string;
   /** Source document URI */
   sourceDocUri: string;
   /** Source document title */

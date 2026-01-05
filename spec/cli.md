@@ -86,6 +86,9 @@ Default output is human-readable terminal format.
 | tags list          | yes    | no      | no    | yes  | no    | terminal |
 | tags add           | yes    | no      | no    | no   | no    | terminal |
 | tags rm            | yes    | no      | no    | no   | no    | terminal |
+| links list         | yes    | no      | no    | yes  | no    | terminal |
+| backlinks          | yes    | no      | no    | yes  | no    | terminal |
+| similar            | yes    | no      | no    | yes  | no    | terminal |
 | serve              | no     | no      | no    | no   | no    | terminal |
 | completion         | no     | no      | no    | no   | no    | terminal |
 | completion install | yes    | no      | no    | no   | no    | terminal |
@@ -1509,6 +1512,237 @@ gno tags rm <doc> <tag> [--json]
 
 - 0: Success
 - 1: Tag not found on document or document not found
+
+---
+
+### gno links list
+
+List outgoing links from a document.
+
+**Synopsis:**
+
+```bash
+gno links [list] <doc> [--type <wiki|markdown>] [--json] [--md]
+```
+
+**Arguments:**
+
+| Argument | Description                              |
+| -------- | ---------------------------------------- |
+| `<doc>`  | Document reference (docid, URI, or path) |
+
+**Options:**
+
+| Flag     | Type   | Description         |
+| -------- | ------ | ------------------- |
+| `--type` | string | Filter by link type |
+| `--json` | flag   | JSON output         |
+| `--md`   | flag   | Markdown output     |
+
+**Behavior:**
+
+- Lists all outgoing links from the document
+- Shows link type (wiki or markdown), target, display text, location
+- Indicates whether each link resolves to an indexed document
+- Default subcommand is `list` (can be omitted)
+
+**Output (JSON):**
+
+Schema: `links-list.schema.json`
+
+```json
+{
+  "links": [
+    {
+      "targetRef": "Other Note",
+      "linkType": "wiki",
+      "linkText": "display text",
+      "startLine": 10,
+      "startCol": 5,
+      "resolved": true,
+      "resolvedDocid": "#abc123"
+    }
+  ],
+  "meta": {
+    "docid": "#def456",
+    "uri": "gno://notes/source.md",
+    "totalLinks": 1,
+    "resolvedCount": 1
+  }
+}
+```
+
+**Exit Codes:**
+
+- 0: Success
+- 1: Document not found or invalid options
+
+**Examples:**
+
+```bash
+# List all links from a document
+gno links gno://notes/source.md
+
+# Filter to wiki links only
+gno links list #abc123 --type wiki
+
+# JSON output
+gno links gno://notes/note.md --json
+```
+
+---
+
+### gno backlinks
+
+List documents that link to a target document.
+
+**Synopsis:**
+
+```bash
+gno backlinks <doc> [-c, --collection <name>] [--json] [--md]
+```
+
+**Arguments:**
+
+| Argument | Description                              |
+| -------- | ---------------------------------------- |
+| `<doc>`  | Document reference (docid, URI, or path) |
+
+**Options:**
+
+| Flag               | Type   | Description          |
+| ------------------ | ------ | -------------------- |
+| `-c, --collection` | string | Filter by collection |
+| `--json`           | flag   | JSON output          |
+| `--md`             | flag   | Markdown output      |
+
+**Behavior:**
+
+- Lists all documents that link TO the specified document
+- Shows source document info, link location, and link text
+- Supports both wiki and markdown link resolution
+
+**Output (JSON):**
+
+Schema: `backlinks.schema.json`
+
+```json
+{
+  "backlinks": [
+    {
+      "sourceDocid": "#abc123",
+      "sourceUri": "gno://notes/source.md",
+      "sourceTitle": "Source Note",
+      "linkText": "link to target",
+      "startLine": 15,
+      "startCol": 3
+    }
+  ],
+  "meta": {
+    "docid": "#def456",
+    "uri": "gno://notes/target.md",
+    "totalBacklinks": 1
+  }
+}
+```
+
+**Exit Codes:**
+
+- 0: Success
+- 1: Document not found
+
+**Examples:**
+
+```bash
+# List backlinks to a document
+gno backlinks gno://notes/target.md
+
+# Filter by collection
+gno backlinks #abc123 --collection notes
+
+# JSON output
+gno backlinks gno://docs/api.md --json
+```
+
+---
+
+### gno similar
+
+Find semantically similar documents using vector embeddings.
+
+**Synopsis:**
+
+```bash
+gno similar <doc> [-n, --limit <num>] [--threshold <num>] [--cross-collection] [--json] [--md]
+```
+
+**Arguments:**
+
+| Argument | Description                              |
+| -------- | ---------------------------------------- |
+| `<doc>`  | Document reference (docid, URI, or path) |
+
+**Options:**
+
+| Flag                 | Type   | Default | Description                    |
+| -------------------- | ------ | ------- | ------------------------------ |
+| `-n, --limit`        | number | 5       | Maximum results                |
+| `--threshold`        | number | 0.7     | Minimum similarity score (0-1) |
+| `--cross-collection` | flag   | false   | Search across all collections  |
+| `--json`             | flag   |         | JSON output                    |
+| `--md`               | flag   |         | Markdown output                |
+
+**Behavior:**
+
+- Finds documents semantically similar to the source document
+- Requires embeddings to be generated (`gno embed`)
+- Uses average document embedding for comparison
+- By default, limits results to same collection
+
+**Output (JSON):**
+
+Schema: `similar.schema.json`
+
+```json
+{
+  "similar": [
+    {
+      "docid": "#abc123",
+      "uri": "gno://notes/related.md",
+      "title": "Related Note",
+      "score": 0.85,
+      "collection": "notes",
+      "relPath": "related.md"
+    }
+  ],
+  "meta": {
+    "docid": "#def456",
+    "totalResults": 1,
+    "limit": 5,
+    "threshold": 0.7,
+    "crossCollection": false
+  }
+}
+```
+
+**Exit Codes:**
+
+- 0: Success
+- 1: Document not found or no embeddings
+- 2: Vector search unavailable
+
+**Examples:**
+
+```bash
+# Find similar documents
+gno similar gno://notes/note.md
+
+# Increase limit and lower threshold
+gno similar #abc123 --limit 10 --threshold 0.5
+
+# Search across all collections
+gno similar gno://docs/api.md --cross-collection --json
+```
 
 ---
 

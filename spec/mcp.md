@@ -612,6 +612,224 @@ List all tags with document counts.
 
 ---
 
+### gno_links
+
+Get outgoing links from a document.
+
+**Input Schema:**
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "ref": {
+      "type": "string",
+      "description": "Document reference: gno:// URI, collection/path, or #docid"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["wiki", "markdown"],
+      "description": "Filter by link type"
+    }
+  },
+  "required": ["ref"]
+}
+```
+
+**Output Schema:** `gno://schemas/links@1.0`
+
+**Response:**
+
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Found 3 outgoing links in gno://notes/index.md:\n\n  [wiki] Target Note (line 5)\n  ..."
+    }
+  ],
+  "structuredContent": {
+    "links": [
+      {
+        "targetRef": "Target Note",
+        "targetAnchor": "section-1",
+        "targetCollection": "notes",
+        "linkType": "wiki",
+        "linkText": "see target",
+        "position": { "startLine": 5, "startCol": 10 }
+      }
+    ],
+    "meta": {
+      "docid": "#a1b2c3d4",
+      "uri": "gno://notes/index.md",
+      "title": "Index",
+      "totalLinks": 3,
+      "filterType": null
+    }
+  }
+}
+```
+
+**Errors:**
+
+- Document not found: returns `isError: true`
+- Invalid ref format: returns `isError: true`
+
+---
+
+### gno_backlinks
+
+Get documents linking TO a document.
+
+**Input Schema:**
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "ref": {
+      "type": "string",
+      "description": "Document reference: gno:// URI, collection/path, or #docid"
+    },
+    "collection": {
+      "type": "string",
+      "description": "Filter source documents by collection"
+    }
+  },
+  "required": ["ref"]
+}
+```
+
+**Output Schema:** `gno://schemas/backlinks@1.0`
+
+**Response:**
+
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Found 2 backlinks to gno://notes/target.md:\n\n  gno://notes/index.md \"Index\" (line 10)\n  ..."
+    }
+  ],
+  "structuredContent": {
+    "backlinks": [
+      {
+        "sourceDocUri": "gno://notes/index.md",
+        "sourceDocTitle": "Index",
+        "linkText": "Target Note",
+        "position": { "startLine": 10, "startCol": 5 }
+      }
+    ],
+    "meta": {
+      "docid": "#a1b2c3d4",
+      "uri": "gno://notes/target.md",
+      "title": "Target Note",
+      "totalBacklinks": 2,
+      "filterCollection": null
+    }
+  }
+}
+```
+
+**Errors:**
+
+- Document not found: returns `isError: true`
+- Collection not found: returns `isError: true`
+- Invalid ref format: returns `isError: true`
+
+---
+
+### gno_similar
+
+Find semantically similar documents using vector embeddings.
+
+**Input Schema:**
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "ref": {
+      "type": "string",
+      "description": "Document reference: gno:// URI, collection/path, or #docid"
+    },
+    "limit": {
+      "type": "integer",
+      "description": "Maximum number of similar documents (1-50)",
+      "default": 5,
+      "minimum": 1,
+      "maximum": 50
+    },
+    "threshold": {
+      "type": "number",
+      "description": "Minimum similarity score (0-1)",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "crossCollection": {
+      "type": "boolean",
+      "description": "Include documents from other collections",
+      "default": false
+    }
+  },
+  "required": ["ref"]
+}
+```
+
+**Output Schema:** `gno://schemas/similar@1.0`
+
+**Response:**
+
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Found 3 similar documents for gno://notes/readme.md:\n\n  [#def5678] gno://notes/guide.md (0.85)\n  ..."
+    }
+  ],
+  "structuredContent": {
+    "similar": [
+      {
+        "docid": "#def5678",
+        "uri": "gno://notes/guide.md",
+        "title": "Guide",
+        "score": 0.85,
+        "absPath": "/path/to/notes/guide.md"
+      }
+    ],
+    "meta": {
+      "docid": "#a1b2c3d4",
+      "uri": "gno://notes/readme.md",
+      "title": "README",
+      "totalSimilar": 3,
+      "threshold": null,
+      "crossCollection": false
+    }
+  }
+}
+```
+
+**Algorithm:**
+
+1. Get all chunks for the source document
+2. Retrieve embeddings for each chunk from content_vectors
+3. Compute average embedding across all chunks
+4. Search for nearest neighbors using sqlite-vec
+5. Exclude self and filter by collection if not crossCollection
+6. Return top N similar documents with scores
+
+**Errors:**
+
+- Document not found: returns `isError: true`
+- Document has no content: returns `isError: true`
+- Document has no embeddings: returns `isError: true`
+- Vector search unavailable (sqlite-vec not loaded): returns `isError: true`
+- Invalid ref format: returns `isError: true`
+
+---
+
 ### gno_tag
 
 Add or remove a tag from a document (write-enabled).

@@ -1412,6 +1412,7 @@ export class SqliteAdapter implements StorePort, SqliteDbProvider {
 
       interface DbBacklinkRow {
         source_doc_id: number;
+        docid: string;
         uri: string;
         title: string | null;
         link_text: string | null;
@@ -1426,7 +1427,7 @@ export class SqliteAdapter implements StorePort, SqliteDbProvider {
       const wikiBacklinks = wikiKey
         ? db
             .query<DbBacklinkRow, [string, string, string]>(
-              `SELECT dl.source_doc_id, src.uri, src.title, dl.link_text, dl.start_line, dl.start_col
+              `SELECT dl.source_doc_id, src.docid, src.uri, src.title, dl.link_text, dl.start_line, dl.start_col
                FROM doc_links dl
                JOIN documents src ON src.id = dl.source_doc_id AND src.active = 1
                WHERE dl.link_type = 'wiki'
@@ -1444,7 +1445,7 @@ export class SqliteAdapter implements StorePort, SqliteDbProvider {
       // NULL target_collection means "same collection as source" - enforce this in SQL
       const mdBacklinks = db
         .query<DbBacklinkRow, [string, string, string]>(
-          `SELECT dl.source_doc_id, src.uri, src.title, dl.link_text, dl.start_line, dl.start_col
+          `SELECT dl.source_doc_id, src.docid, src.uri, src.title, dl.link_text, dl.start_line, dl.start_col
            FROM doc_links dl
            JOIN documents src ON src.id = dl.source_doc_id AND src.active = 1
            WHERE dl.link_type = 'markdown'
@@ -1459,6 +1460,7 @@ export class SqliteAdapter implements StorePort, SqliteDbProvider {
 
       const allBacklinks = [...wikiBacklinks, ...mdBacklinks].map((r) => ({
         sourceDocId: r.source_doc_id,
+        sourceDocid: r.docid,
         sourceDocUri: r.uri,
         sourceDocTitle: r.title,
         linkText: r.link_text,

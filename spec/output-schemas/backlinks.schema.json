@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "gno://schemas/backlinks@1.0",
+  "title": "GNO Backlinks",
+  "description": "List of documents linking to a target document",
+  "type": "object",
+  "required": ["backlinks", "meta"],
+  "properties": {
+    "backlinks": {
+      "type": "array",
+      "description": "List of documents linking to this one",
+      "items": {
+        "type": "object",
+        "required": ["sourceDocid", "sourceUri", "startLine", "startCol"],
+        "properties": {
+          "sourceDocid": {
+            "type": "string",
+            "description": "Source document ID"
+          },
+          "sourceUri": {
+            "type": "string",
+            "description": "Source document URI"
+          },
+          "sourceTitle": {
+            "type": "string",
+            "description": "Source document title"
+          },
+          "linkText": {
+            "type": "string",
+            "description": "Link display text"
+          },
+          "startLine": {
+            "type": "integer",
+            "description": "1-based line number in source",
+            "minimum": 1
+          },
+          "startCol": {
+            "type": "integer",
+            "description": "1-based column in source",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "meta": {
+      "type": "object",
+      "required": ["docid", "totalBacklinks"],
+      "properties": {
+        "docid": {
+          "type": "string",
+          "description": "Target document ID"
+        },
+        "uri": {
+          "type": "string",
+          "description": "Target document URI"
+        },
+        "title": {
+          "type": "string",
+          "description": "Target document title"
+        },
+        "totalBacklinks": {
+          "type": "integer",
+          "description": "Total number of backlinks",
+          "minimum": 0
+        },
+        "collection": {
+          "type": "string",
+          "description": "Collection filter applied"
+        }
+      }
+    }
+  }
+}

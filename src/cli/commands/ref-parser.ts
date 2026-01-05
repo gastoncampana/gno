@@ -29,7 +29,7 @@ export type ParseRefResult = ParsedRef | { error: string };
 // Top-level regex patterns (perf: avoid recreating in functions)
 // ─────────────────────────────────────────────────────────────────────────────
 
-const DOCID_PATTERN = /^#[a-f0-9]{6,8}$/;
+const DOCID_PATTERN = /^#[a-f0-9]{6,}$/;
 const LINE_SUFFIX_PATTERN = /:(\d+)$/;
 const GLOB_PATTERN = /[*?[\]]/;
 

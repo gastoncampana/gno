@@ -27,6 +27,9 @@ async function loadAllSchemas(): Promise<void> {
     "mcp-job-status",
     "mcp-job-list",
     "tags-list",
+    "links-list",
+    "backlinks",
+    "similar",
   ];
 
   for (const name of schemaFiles) {

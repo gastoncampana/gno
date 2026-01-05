@@ -1,0 +1,84 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "gno://schemas/similar@1.0",
+  "title": "GNO Similar Documents",
+  "description": "List of semantically similar documents",
+  "type": "object",
+  "required": ["similar", "meta"],
+  "properties": {
+    "similar": {
+      "type": "array",
+      "description": "List of similar documents ordered by similarity score",
+      "items": {
+        "type": "object",
+        "required": ["docid", "uri", "score"],
+        "properties": {
+          "docid": {
+            "type": "string",
+            "description": "Document ID"
+          },
+          "uri": {
+            "type": "string",
+            "description": "Document URI"
+          },
+          "title": {
+            "type": "string",
+            "description": "Document title"
+          },
+          "score": {
+            "type": "number",
+            "description": "Similarity score (0-1, higher is more similar)",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "collection": {
+            "type": "string",
+            "description": "Document collection"
+          },
+          "relPath": {
+            "type": "string",
+            "description": "Relative path within collection"
+          }
+        }
+      }
+    },
+    "meta": {
+      "type": "object",
+      "required": ["docid", "totalResults"],
+      "properties": {
+        "docid": {
+          "type": "string",
+          "description": "Source document ID"
+        },
+        "uri": {
+          "type": "string",
+          "description": "Source document URI"
+        },
+        "title": {
+          "type": "string",
+          "description": "Source document title"
+        },
+        "totalResults": {
+          "type": "integer",
+          "description": "Number of similar documents returned",
+          "minimum": 0
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Maximum results requested",
+          "minimum": 1
+        },
+        "threshold": {
+          "type": "number",
+          "description": "Minimum similarity threshold used",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "crossCollection": {
+          "type": "boolean",
+          "description": "Whether cross-collection search was enabled"
+        }
+      }
+    }
+  }
+}

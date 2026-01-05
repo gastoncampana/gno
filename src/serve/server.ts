@@ -41,6 +41,11 @@ import {
   handleTags,
   handleUpdateDoc,
 } from "./routes/api";
+import {
+  handleDocBacklinks,
+  handleDocLinks,
+  handleDocSimilar,
+} from "./routes/links";
 import { forbiddenResponse, isRequestAllowed } from "./security";
 
 export interface ServeOptions {
@@ -388,6 +393,42 @@ export async function startServer(
             );
             return withSecurityHeaders(
               await handleDeleteCollection(ctxHolder, store, name),
+              isDev
+            );
+          },
+        },
+        "/api/doc/:id/links": {
+          GET: async (req: Request) => {
+            const url = new URL(req.url);
+            // Extract id from /api/doc/:id/links
+            const parts = url.pathname.split("/");
+            const id = decodeURIComponent(parts[3] || "");
+            return withSecurityHeaders(
+              await handleDocLinks(store, id, url),
+              isDev
+            );
+          },
+        },
+        "/api/doc/:id/backlinks": {
+          GET: async (req: Request) => {
+            const url = new URL(req.url);
+            // Extract id from /api/doc/:id/backlinks
+            const parts = url.pathname.split("/");
+            const id = decodeURIComponent(parts[3] || "");
+            return withSecurityHeaders(
+              await handleDocBacklinks(store, id),
+              isDev
+            );
+          },
+        },
+        "/api/doc/:id/similar": {
+          GET: async (req: Request) => {
+            const url = new URL(req.url);
+            // Extract id from /api/doc/:id/similar
+            const parts = url.pathname.split("/");
+            const id = decodeURIComponent(parts[3] || "");
+            return withSecurityHeaders(
+              await handleDocSimilar(ctxHolder.current, id, url),
               isDev
             );
           },

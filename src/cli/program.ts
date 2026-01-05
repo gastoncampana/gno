@@ -171,6 +171,7 @@ export function createProgram(): Command {
   wireManagementCommands(program);
   wireRetrievalCommands(program);
   wireTagsCommands(program);
+  wireLinksCommands(program);
   wireMcpCommand(program);
   wireSkillCommands(program);
   wireServeCommand(program);
@@ -1566,6 +1567,140 @@ function wireTagsCommands(program: Command): void {
         );
       }
     );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Links Commands (links, backlinks, similar)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function wireLinksCommands(program: Command): void {
+  // links - List outgoing links from a document
+  const linksCmd = program
+    .command("links")
+    .description("Document link commands");
+
+  linksCmd
+    .command("list <doc>", { isDefault: true })
+    .description("List outgoing links from a document")
+    .option("--type <type>", "filter by link type (wiki, markdown)")
+    .option("--json", "JSON output")
+    .option("--md", "Markdown output")
+    .action(async (doc: string, cmdOpts: Record<string, unknown>) => {
+      const format = getFormat(cmdOpts);
+      assertFormatSupported(CMD.linksList, format);
+      const globals = getGlobals();
+
+      // Validate type option
+      const linkType = cmdOpts.type as string | undefined;
+      if (linkType && !["wiki", "markdown"].includes(linkType)) {
+        throw new CliError(
+          "VALIDATION",
+          `Invalid link type: ${linkType}. Must be 'wiki' or 'markdown'.`
+        );
+      }
+
+      const { linksList, formatLinksList } = await import("./commands/links");
+      const result = await linksList(doc, {
+        configPath: globals.config,
+        type: linkType as "wiki" | "markdown" | undefined,
+        json: format === "json",
+        md: format === "md",
+      });
+
+      if (!result.success) {
+        throw new CliError(
+          result.isValidation ? "VALIDATION" : "RUNTIME",
+          result.error
+        );
+      }
+
+      const output = formatLinksList(result, {
+        json: format === "json",
+        md: format === "md",
+      });
+      await writeOutput(output, format);
+    });
+
+  // backlinks - List documents linking TO this document
+  program
+    .command("backlinks <doc>")
+    .description("List documents linking to this document")
+    .option("-c, --collection <name>", "filter by collection")
+    .option("--json", "JSON output")
+    .option("--md", "Markdown output")
+    .action(async (doc: string, cmdOpts: Record<string, unknown>) => {
+      const format = getFormat(cmdOpts);
+      assertFormatSupported(CMD.backlinks, format);
+      const globals = getGlobals();
+
+      const { backlinks, formatBacklinks } = await import("./commands/links");
+      const result = await backlinks(doc, {
+        configPath: globals.config,
+        collection: cmdOpts.collection as string | undefined,
+        json: format === "json",
+        md: format === "md",
+      });
+
+      if (!result.success) {
+        throw new CliError(
+          result.isValidation ? "VALIDATION" : "RUNTIME",
+          result.error
+        );
+      }
+
+      const output = formatBacklinks(result, {
+        json: format === "json",
+        md: format === "md",
+      });
+      await writeOutput(output, format);
+    });
+
+  // similar - Find semantically similar documents
+  program
+    .command("similar <doc>")
+    .description("Find semantically similar documents")
+    .option("-n, --limit <num>", "max results", "5")
+    .option("--threshold <num>", "minimum similarity (0-1)", "0.7")
+    .option("--cross-collection", "search across all collections")
+    .option("--json", "JSON output")
+    .option("--md", "Markdown output")
+    .action(async (doc: string, cmdOpts: Record<string, unknown>) => {
+      const format = getFormat(cmdOpts);
+      assertFormatSupported(CMD.similar, format);
+      const globals = getGlobals();
+
+      const limit = cmdOpts.limit
+        ? parsePositiveInt("limit", cmdOpts.limit)
+        : 5;
+
+      const threshold = parseOptionalFloat("threshold", cmdOpts.threshold);
+      if (threshold !== undefined && (threshold < 0 || threshold > 1)) {
+        throw new CliError("VALIDATION", "--threshold must be between 0 and 1");
+      }
+
+      const { similar, formatSimilar } = await import("./commands/links");
+      const result = await similar(doc, {
+        configPath: globals.config,
+        limit,
+        threshold,
+        crossCollection: Boolean(cmdOpts.crossCollection),
+        json: format === "json",
+        md: format === "md",
+      });
+
+      if (!result.success) {
+        throw new CliError(
+          result.isValidation ? "VALIDATION" : "RUNTIME",
+          result.error
+        );
+      }
+
+      const output = formatSimilar(result, {
+        json: format === "json",
+        md: format === "md",
+      });
+      await writeOutput(output, format);
+    });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

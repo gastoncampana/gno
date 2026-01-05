@@ -17,6 +17,7 @@ import { handleEmbed } from "./embed";
 import { handleGet } from "./get";
 import { handleIndex } from "./index-cmd";
 import { handleJobStatus } from "./job-status";
+import { handleBacklinks, handleLinks, handleSimilar } from "./links";
 import { handleListJobs } from "./list-jobs";
 import { handleListTags } from "./list-tags";
 import { handleMultiGet } from "./multi-get";
@@ -140,6 +141,23 @@ const listJobsInputSchema = z.object({
 const listTagsInputSchema = z.object({
   collection: z.string().optional(),
   prefix: z.string().optional(),
+});
+
+const linksInputSchema = z.object({
+  ref: z.string().trim().min(1, "Reference cannot be empty"),
+  type: z.enum(["wiki", "markdown"]).optional(),
+});
+
+const backlinksInputSchema = z.object({
+  ref: z.string().trim().min(1, "Reference cannot be empty"),
+  collection: z.string().trim().optional(),
+});
+
+const similarInputSchema = z.object({
+  ref: z.string().trim().min(1, "Reference cannot be empty"),
+  limit: z.number().int().min(1).max(50).default(5),
+  threshold: z.number().min(0).max(1).optional(),
+  crossCollection: z.boolean().default(false),
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -299,6 +317,27 @@ export function registerTools(server: McpServer, ctx: ToolContext): void {
     "List tags with document counts",
     listTagsInputSchema.shape,
     (args) => handleListTags(args, ctx)
+  );
+
+  server.tool(
+    "gno_links",
+    "Get outgoing links from a document",
+    linksInputSchema.shape,
+    (args) => handleLinks(args, ctx)
+  );
+
+  server.tool(
+    "gno_backlinks",
+    "Get documents linking TO a document",
+    backlinksInputSchema.shape,
+    (args) => handleBacklinks(args, ctx)
+  );
+
+  server.tool(
+    "gno_similar",
+    "Find semantically similar documents using vector embeddings",
+    similarInputSchema.shape,
+    (args) => handleSimilar(args, ctx)
   );
 
   if (ctx.enableWrite) {

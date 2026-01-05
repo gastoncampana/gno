@@ -8,25 +8,28 @@ GNO command-line interface guide.
 
 ## Quick Reference
 
-| Command          | Description                     |
-| ---------------- | ------------------------------- |
-| `gno init`       | Initialize config and database  |
-| `gno index`      | Full index (sync + embed)       |
-| `gno update`     | Sync files from disk (no embed) |
-| `gno embed`      | Generate embeddings only        |
-| `gno search`     | BM25 full-text search           |
-| `gno vsearch`    | Vector similarity search        |
-| `gno query`      | Hybrid search (BM25 + vector)   |
-| `gno ask`        | Search with AI answer           |
-| `gno get`        | Retrieve document content       |
-| `gno ls`         | List indexed documents          |
-| `gno serve`      | Start web UI server             |
-| `gno mcp`        | Start MCP server for AI clients |
-| `gno models`     | Manage models (list, pull, use) |
-| `gno skill`      | Install GNO skill for AI agents |
-| `gno tags`       | Manage document tags            |
-| `gno completion` | Shell tab completion            |
-| `gno doctor`     | Check system health             |
+| Command          | Description                       |
+| ---------------- | --------------------------------- |
+| `gno init`       | Initialize config and database    |
+| `gno index`      | Full index (sync + embed)         |
+| `gno update`     | Sync files from disk (no embed)   |
+| `gno embed`      | Generate embeddings only          |
+| `gno search`     | BM25 full-text search             |
+| `gno vsearch`    | Vector similarity search          |
+| `gno query`      | Hybrid search (BM25 + vector)     |
+| `gno ask`        | Search with AI answer             |
+| `gno get`        | Retrieve document content         |
+| `gno ls`         | List indexed documents            |
+| `gno links`      | List outgoing links from document |
+| `gno backlinks`  | List documents linking to target  |
+| `gno similar`    | Find semantically similar docs    |
+| `gno serve`      | Start web UI server               |
+| `gno mcp`        | Start MCP server for AI clients   |
+| `gno models`     | Manage models (list, pull, use)   |
+| `gno skill`      | Install GNO skill for AI agents   |
+| `gno tags`       | Manage document tags              |
+| `gno completion` | Shell tab completion              |
+| `gno doctor`     | Check system health               |
 
 ## Global Flags
 
@@ -488,6 +491,61 @@ gno tags rm abc123 draft wip
 ```
 
 Tag changes update the document's YAML frontmatter on disk.
+
+## Link Commands
+
+Navigate document relationships via wiki links and markdown links.
+
+### gno links
+
+List outgoing links from a document.
+
+```bash
+gno links gno://notes/source.md        # List all links
+gno links #abc123 --type wiki          # Wiki links only
+gno links source.md --json
+```
+
+Options:
+
+- `--type <wiki|markdown>` - Filter by link type
+- `--json`, `--md` - Output format
+
+Shows link type, target, display text, line/column, and whether the target resolves to an indexed document.
+
+### gno backlinks
+
+List documents that link TO a target document.
+
+```bash
+gno backlinks gno://notes/target.md
+gno backlinks #abc123 --collection notes
+gno backlinks target.md --json
+```
+
+Options:
+
+- `-c, --collection <name>` - Filter by source collection
+- `--json`, `--md` - Output format
+
+### gno similar
+
+Find semantically similar documents using vector embeddings.
+
+```bash
+gno similar gno://notes/note.md
+gno similar #abc123 --limit 10 --threshold 0.5
+gno similar doc.md --cross-collection --json
+```
+
+Options:
+
+- `-n, --limit <num>` - Max results (default: 5)
+- `--threshold <num>` - Minimum similarity (default: 0.7)
+- `--cross-collection` - Search across all collections
+- `--json`, `--md` - Output format
+
+**Requirements**: Embeddings must be generated with `gno embed` or `gno index`.
 
 ## Admin Commands
 

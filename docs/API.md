@@ -26,22 +26,25 @@ All endpoints are JSON-based and run entirely on your machine.
 
 ### Read Operations
 
-| Endpoint             | Method | Description           |
-| :------------------- | :----- | :-------------------- |
-| `/api/health`        | GET    | Health check          |
-| `/api/status`        | GET    | Index statistics      |
-| `/api/capabilities`  | GET    | Available features    |
-| `/api/collections`   | GET    | List collections      |
-| `/api/docs`          | GET    | List documents        |
-| `/api/doc`           | GET    | Get document content  |
-| `/api/tags`          | GET    | List tags with counts |
-| `/api/search`        | POST   | BM25 keyword search   |
-| `/api/query`         | POST   | Hybrid search         |
-| `/api/ask`           | POST   | AI-powered Q&A        |
-| `/api/presets`       | GET    | List model presets    |
-| `/api/presets`       | POST   | Switch preset         |
-| `/api/models/status` | GET    | Download status       |
-| `/api/models/pull`   | POST   | Start model download  |
+| Endpoint                 | Method | Description                 |
+| :----------------------- | :----- | :-------------------------- |
+| `/api/health`            | GET    | Health check                |
+| `/api/status`            | GET    | Index statistics            |
+| `/api/capabilities`      | GET    | Available features          |
+| `/api/collections`       | GET    | List collections            |
+| `/api/docs`              | GET    | List documents              |
+| `/api/doc`               | GET    | Get document content        |
+| `/api/doc/:id/links`     | GET    | Get outgoing links from doc |
+| `/api/doc/:id/backlinks` | GET    | Get docs linking to this    |
+| `/api/doc/:id/similar`   | GET    | Find semantically similar   |
+| `/api/tags`              | GET    | List tags with counts       |
+| `/api/search`            | POST   | BM25 keyword search         |
+| `/api/query`             | POST   | Hybrid search               |
+| `/api/ask`               | POST   | AI-powered Q&A              |
+| `/api/presets`           | GET    | List model presets          |
+| `/api/presets`           | POST   | Switch preset               |
+| `/api/models/status`     | GET    | Download status             |
+| `/api/models/pull`       | POST   | Start model download        |
 
 ### Write Operations
 
@@ -550,6 +553,205 @@ GET /api/doc?uri=gno://notes/projects/readme.md
 
 ```bash
 curl "http://localhost:3000/api/doc?uri=gno://notes/readme.md" | jq '.content'
+```
+
+---
+
+### Get Document Links
+
+```http
+GET /api/doc/:id/links?type=wiki
+```
+
+Get outgoing links from a document (wiki links and markdown links).
+
+**URL Parameters**:
+
+| Param | Description                                                          |
+| :---- | :------------------------------------------------------------------- |
+| `:id` | Document ID (the `#hexhash` from docid, URL-encoded as `%23hexhash`) |
+
+**Query Parameters**:
+
+| Param  | Type   | Default | Description                               |
+| :----- | :----- | :------ | :---------------------------------------- |
+| `type` | string | —       | Filter by link type: `wiki` or `markdown` |
+
+**Response**:
+
+```json
+{
+  "links": [
+    {
+      "targetRef": "Other Note",
+      "targetRefNorm": "other note",
+      "linkType": "wiki",
+      "startLine": 5,
+      "startCol": 1,
+      "endLine": 5,
+      "endCol": 17,
+      "source": "parsed"
+    },
+    {
+      "targetRef": "./related.md",
+      "targetRefNorm": "related.md",
+      "targetAnchor": "section",
+      "linkType": "markdown",
+      "linkText": "see related",
+      "startLine": 10,
+      "startCol": 1,
+      "endLine": 10,
+      "endCol": 30,
+      "source": "parsed"
+    }
+  ],
+  "meta": {
+    "docid": "#abc123",
+    "totalLinks": 2,
+    "typeFilter": "wiki"
+  }
+}
+```
+
+| Field          | Description                                |
+| :------------- | :----------------------------------------- |
+| `targetRef`    | Target path or wiki name                   |
+| `linkType`     | `wiki` ([[Name]]) or `markdown` ([](path)) |
+| `targetAnchor` | Fragment/anchor without #                  |
+| `linkText`     | Display text of the link                   |
+| `source`       | `parsed`, `user`, or `suggested`           |
+
+**Example**:
+
+```bash
+# All links
+curl "http://localhost:3000/api/doc/%23abc123/links" | jq
+
+# Only wiki links
+curl "http://localhost:3000/api/doc/%23abc123/links?type=wiki" | jq
+```
+
+---
+
+### Get Document Backlinks
+
+```http
+GET /api/doc/:id/backlinks
+```
+
+Get documents that link TO this document.
+
+**URL Parameters**:
+
+| Param | Description                                                          |
+| :---- | :------------------------------------------------------------------- |
+| `:id` | Document ID (the `#hexhash` from docid, URL-encoded as `%23hexhash`) |
+
+**Response**:
+
+```json
+{
+  "backlinks": [
+    {
+      "sourceDocid": "#def456",
+      "sourceUri": "gno://notes/source.md",
+      "sourceTitle": "Source Document",
+      "linkText": "see also",
+      "startLine": 10,
+      "startCol": 5
+    }
+  ],
+  "meta": {
+    "docid": "#abc123",
+    "totalBacklinks": 1
+  }
+}
+```
+
+| Field         | Description                    |
+| :------------ | :----------------------------- |
+| `sourceDocid` | Docid of the linking document  |
+| `sourceUri`   | URI of the linking document    |
+| `sourceTitle` | Title of the linking document  |
+| `linkText`    | Display text of the link       |
+| `startLine`   | Line number where link appears |
+
+**Example**:
+
+```bash
+curl "http://localhost:3000/api/doc/%23abc123/backlinks" | jq
+```
+
+---
+
+### Find Similar Documents
+
+```http
+GET /api/doc/:id/similar?limit=5&threshold=0.7&crossCollection=true
+```
+
+Find semantically similar documents using vector embeddings.
+
+**URL Parameters**:
+
+| Param | Description                                                          |
+| :---- | :------------------------------------------------------------------- |
+| `:id` | Document ID (the `#hexhash` from docid, URL-encoded as `%23hexhash`) |
+
+**Query Parameters**:
+
+| Param             | Type    | Default | Description                   |
+| :---------------- | :------ | :------ | :---------------------------- |
+| `limit`           | number  | 5       | Max results (1-20)            |
+| `threshold`       | number  | 0.5     | Min similarity score (0-1)    |
+| `crossCollection` | boolean | false   | Search across all collections |
+
+**Response**:
+
+```json
+{
+  "similar": [
+    {
+      "docid": "#def456",
+      "uri": "gno://notes/similar.md",
+      "title": "Similar Note",
+      "collection": "notes",
+      "score": 0.85
+    },
+    {
+      "docid": "#ghi789",
+      "uri": "gno://notes/related.md",
+      "score": 0.72
+    }
+  ],
+  "meta": {
+    "docid": "#abc123",
+    "totalResults": 2,
+    "threshold": 0.7,
+    "crossCollection": true
+  }
+}
+```
+
+| Field   | Description                                   |
+| :------ | :-------------------------------------------- |
+| `score` | Similarity score (0-1, higher = more similar) |
+
+**Errors**:
+
+| Code          | Status | Description                                  |
+| :------------ | :----- | :------------------------------------------- |
+| `NOT_FOUND`   | 404    | Document not found                           |
+| `UNAVAILABLE` | 503    | Vector search not available. Run `gno embed` |
+
+**Example**:
+
+```bash
+# Find similar docs in same collection
+curl "http://localhost:3000/api/doc/%23abc123/similar?limit=10" | jq
+
+# Find similar across all collections
+curl "http://localhost:3000/api/doc/%23abc123/similar?crossCollection=true&threshold=0.6" | jq
 ```
 
 ---
