@@ -36,21 +36,31 @@ export type VecRebuildResult =
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Infer embedding dimensions from stored vectors.
- * Returns dimensions or null if no vectors exist.
+ * Infer embedding dimensions from stored vectors for a specific model.
+ * Returns dimensions or null if no vectors exist or data is invalid.
  */
-function inferDimensions(db: import("bun:sqlite").Database): number | null {
+function inferDimensions(
+  db: import("bun:sqlite").Database,
+  model: string
+): number | null {
   try {
     const row = db
-      .prepare("SELECT embedding FROM content_vectors LIMIT 1")
-      .get() as { embedding: Uint8Array } | undefined;
+      .prepare("SELECT embedding FROM content_vectors WHERE model = ? LIMIT 1")
+      .get(model) as { embedding: Uint8Array } | undefined;
 
     if (!row || !row.embedding) {
       return null;
     }
 
+    const byteLength = row.embedding.byteLength;
+
+    // Validate: must be non-empty and aligned to 4 bytes (Float32)
+    if (byteLength === 0 || byteLength % 4 !== 0) {
+      return null;
+    }
+
     // Float32Array: 4 bytes per dimension
-    return row.embedding.byteLength / 4;
+    return byteLength / 4;
   } catch {
     return null;
   }
@@ -93,10 +103,13 @@ export async function vecSync(
   try {
     const db = store.getRawDb();
 
-    // Infer dimensions from stored vectors
-    const dimensions = inferDimensions(db);
+    // Infer dimensions from stored vectors for this model
+    const dimensions = inferDimensions(db, modelUri);
     if (dimensions === null) {
-      return { success: false, error: "No embeddings found. Run: gno embed" };
+      return {
+        success: false,
+        error: `No embeddings found for model ${modelUri}. Run: gno embed`,
+      };
     }
 
     const vectorResult = await createVectorIndexPort(db, {
@@ -164,10 +177,13 @@ export async function vecRebuild(
   try {
     const db = store.getRawDb();
 
-    // Infer dimensions from stored vectors
-    const dimensions = inferDimensions(db);
+    // Infer dimensions from stored vectors for this model
+    const dimensions = inferDimensions(db, modelUri);
     if (dimensions === null) {
-      return { success: false, error: "No embeddings found. Run: gno embed" };
+      return {
+        success: false,
+        error: `No embeddings found for model ${modelUri}. Run: gno embed`,
+      };
     }
 
     // Get vector count before rebuild for reporting

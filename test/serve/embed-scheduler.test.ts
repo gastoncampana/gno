@@ -43,6 +43,7 @@ function createMockVectorIndex() {
     searchAvailable: true,
     model: "test-model",
     dimensions: 3,
+    vecDirty: false,
     upsertVectors: mock(() => Promise.resolve({ ok: true })),
     deleteVectorsForMirror: mock(() => Promise.resolve({ ok: true })),
     searchNearest: mock(() => Promise.resolve({ ok: true, value: [] })),

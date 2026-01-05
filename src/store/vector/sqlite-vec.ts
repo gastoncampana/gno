@@ -329,56 +329,57 @@ export async function createVectorIndexPort(
       }
 
       try {
-        let added = 0;
-        let removed = 0;
-
-        // 1. Remove orphans from vec table (not in content_vectors for this model)
-        const orphanResult = db
-          .prepare(
-            `
-            DELETE FROM ${tableName}
-            WHERE chunk_id NOT IN (
-              SELECT mirror_hash || ':' || seq
-              FROM content_vectors
-              WHERE model = ?
-            )
-          `
-          )
-          .run(model);
-        removed = orphanResult.changes;
-
-        // 2. Add missing entries (in content_vectors but not in vec table)
-        const missing = db
-          .prepare(
-            `
-            SELECT cv.mirror_hash, cv.seq, cv.embedding
-            FROM content_vectors cv
-            WHERE cv.model = ?
-              AND (cv.mirror_hash || ':' || cv.seq) NOT IN (
-                SELECT chunk_id FROM ${tableName}
+        // Wrap entire sync in transaction for atomicity
+        const result = db.transaction(() => {
+          // 1. Remove orphans from vec table (not in content_vectors for this model)
+          const orphanResult = db
+            .prepare(
+              `
+              DELETE FROM ${tableName}
+              WHERE chunk_id NOT IN (
+                SELECT mirror_hash || ':' || seq
+                FROM content_vectors
+                WHERE model = ?
               )
-          `
-          )
-          .all(model) as {
-          mirror_hash: string;
-          seq: number;
-          embedding: Uint8Array;
-        }[];
+            `
+            )
+            .run(model);
+          const removed = orphanResult.changes;
 
-        if (missing.length > 0) {
-          const insertStmt = db.prepare(`
-            INSERT INTO ${tableName} (chunk_id, embedding) VALUES (?, ?)
-          `);
-          db.transaction(() => {
+          // 2. Add missing entries (in content_vectors but not in vec table)
+          const missing = db
+            .prepare(
+              `
+              SELECT cv.mirror_hash, cv.seq, cv.embedding
+              FROM content_vectors cv
+              WHERE cv.model = ?
+                AND (cv.mirror_hash || ':' || cv.seq) NOT IN (
+                  SELECT chunk_id FROM ${tableName}
+                )
+            `
+            )
+            .all(model) as {
+            mirror_hash: string;
+            seq: number;
+            embedding: Uint8Array;
+          }[];
+
+          let added = 0;
+          if (missing.length > 0) {
+            const insertStmt = db.prepare(`
+              INSERT INTO ${tableName} (chunk_id, embedding) VALUES (?, ?)
+            `);
             for (const row of missing) {
               const chunkId = `${row.mirror_hash}:${row.seq}`;
               insertStmt.run(chunkId, row.embedding);
             }
-          })();
-          added = missing.length;
-        }
+            added = missing.length;
+          }
 
-        return Promise.resolve(ok({ added, removed }));
+          return { added, removed };
+        })();
+
+        return Promise.resolve(ok(result));
       } catch (e) {
         return Promise.resolve(
           err(

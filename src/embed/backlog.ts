@@ -32,6 +32,8 @@ export interface EmbedBacklogDeps {
 export interface EmbedBacklogResult {
   embedded: number;
   errors: number;
+  /** Error message if vec index sync failed (embeddings stored, but search may be stale) */
+  syncError?: string;
 }
 
 interface Cursor {
@@ -117,6 +119,7 @@ export async function embedBacklog(
     }
 
     // Sync vec index once at end if any vec0 writes failed
+    let syncError: string | undefined;
     if (vectorIndex.vecDirty) {
       const syncResult = await vectorIndex.syncVecIndex();
       if (syncResult.ok) {
@@ -126,11 +129,12 @@ export async function embedBacklog(
         }
         vectorIndex.vecDirty = false;
       } else {
-        console.warn(`[vec] Sync failed: ${syncResult.error.message}`);
+        syncError = syncResult.error.message;
+        console.warn(`[vec] Sync failed: ${syncError}`);
       }
     }
 
-    return ok({ embedded, errors });
+    return ok({ embedded, errors, syncError });
   } catch (e) {
     return err(
       "INTERNAL",

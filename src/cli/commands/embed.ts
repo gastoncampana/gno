@@ -372,6 +372,26 @@ export async function embed(options: EmbedOptions = {}): Promise<EmbedResult> {
       return { success: false, error: result.error };
     }
 
+    // Sync vec index if any vec0 writes failed (matches embedBacklog behavior)
+    if (vectorIndex.vecDirty) {
+      const syncResult = await vectorIndex.syncVecIndex();
+      if (syncResult.ok) {
+        const { added, removed } = syncResult.value;
+        if (added > 0 || removed > 0) {
+          if (!options.json) {
+            process.stdout.write(
+              `\n[vec] Synced index: +${added} -${removed}\n`
+            );
+          }
+        }
+        vectorIndex.vecDirty = false;
+      } else if (!options.json) {
+        process.stdout.write(
+          `\n[vec] Sync failed: ${syncResult.error.message}\n`
+        );
+      }
+    }
+
     return {
       success: true,
       embedded: result.embedded,
