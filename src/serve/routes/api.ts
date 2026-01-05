@@ -284,6 +284,10 @@ export async function handleCreateCollection(
       gitPull: body.gitPull,
       runUpdateCmd: true,
     });
+    // Notify scheduler after sync completes (triggers debounced embed)
+    if (result.filesAdded > 0 || result.filesUpdated > 0) {
+      ctxHolder.scheduler?.notifySyncComplete(["add-batch"]);
+    }
     return {
       collections: [result],
       totalDurationMs: result.durationMs,
@@ -399,10 +403,15 @@ export async function handleSync(
 
   // Start background sync job
   const jobResult = startJob("sync", async (): Promise<SyncResult> => {
-    return await defaultSyncService.syncAll(collections, store, {
+    const result = await defaultSyncService.syncAll(collections, store, {
       gitPull: body.gitPull,
       runUpdateCmd: true,
     });
+    // Notify scheduler after sync completes (triggers debounced embed)
+    if (result.totalFilesAdded > 0 || result.totalFilesUpdated > 0) {
+      ctxHolder.scheduler?.notifySyncComplete(["sync-batch"]);
+    }
+    return result;
   });
 
   if (!jobResult.ok) {
