@@ -47,6 +47,19 @@ function createMockStore(options: {
     listDocuments(_collection?: string) {
       return Promise.resolve({ ok: true as const, value: [] });
     },
+    resolveLinks(
+      _targets: Array<{
+        targetRefNorm: string;
+        targetCollection: string;
+        linkType: "wiki" | "markdown";
+      }>
+    ) {
+      // Return null for all targets (unresolved) - tests don't need resolved links
+      return Promise.resolve({
+        ok: true as const,
+        value: _targets.map(() => null),
+      });
+    },
   };
 }
 
