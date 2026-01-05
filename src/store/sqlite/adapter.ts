@@ -1295,12 +1295,18 @@ export class SqliteAdapter implements StorePort, SqliteDbProvider {
           `);
 
           for (const link of links) {
+            // Normalize empty string targetCollection to NULL for consistent semantics
+            // NULL = "same collection as source doc"
+            const normalizedTargetCollection = link.targetCollection?.trim()
+              ? link.targetCollection.trim()
+              : null;
+
             stmt.run(
               documentId,
               link.targetRef,
               link.targetRefNorm,
               link.targetAnchor ?? null,
-              link.targetCollection ?? null,
+              normalizedTargetCollection,
               link.linkType,
               link.linkText ?? null,
               link.startLine,
@@ -1475,6 +1481,81 @@ export class SqliteAdapter implements StorePort, SqliteDbProvider {
         cause instanceof Error
           ? cause.message
           : "Failed to get backlinks for document",
+        cause
+      );
+    }
+  }
+
+  async resolveLinks(
+    targets: Array<{
+      targetRefNorm: string;
+      targetCollection: string;
+      linkType: "wiki" | "markdown";
+    }>
+  ): Promise<
+    StoreResult<
+      Array<{ docid: string; uri: string; title: string | null } | null>
+    >
+  > {
+    try {
+      const db = this.ensureOpen();
+
+      // For efficiency, batch resolve by building a map
+      // Key: "linkType:collection:refNorm" -> doc info
+      const results: Array<{
+        docid: string;
+        uri: string;
+        title: string | null;
+      } | null> = [];
+
+      for (const target of targets) {
+        let doc: { docid: string; uri: string; title: string | null } | null =
+          null;
+
+        if (target.linkType === "wiki") {
+          // Wiki links match on normalized title (lower+trim)
+          // ORDER BY id for deterministic results when multiple docs share title
+          const row = db
+            .query<
+              { docid: string; uri: string; title: string | null },
+              [string, string]
+            >(
+              `SELECT docid, uri, title FROM documents
+               WHERE active = 1
+                 AND collection = ?
+                 AND lower(trim(title)) = ?
+               ORDER BY id ASC
+               LIMIT 1`
+            )
+            .get(target.targetCollection, target.targetRefNorm);
+          doc = row ?? null;
+        } else {
+          // Markdown links match on rel_path
+          // ORDER BY id for deterministic results
+          const row = db
+            .query<
+              { docid: string; uri: string; title: string | null },
+              [string, string]
+            >(
+              `SELECT docid, uri, title FROM documents
+               WHERE active = 1
+                 AND collection = ?
+                 AND rel_path = ?
+               ORDER BY id ASC
+               LIMIT 1`
+            )
+            .get(target.targetCollection, target.targetRefNorm);
+          doc = row ?? null;
+        }
+
+        results.push(doc);
+      }
+
+      return ok(results);
+    } catch (cause) {
+      return err(
+        "QUERY_FAILED",
+        cause instanceof Error ? cause.message : "Failed to resolve links",
         cause
       );
     }

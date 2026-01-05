@@ -56,6 +56,8 @@ function App() {
     }
     window.history.pushState({}, "", to);
     setLocation(to);
+    // Dispatch event for components that need to react to URL changes
+    window.dispatchEvent(new CustomEvent("locationchange", { detail: to }));
   }, []);
 
   // Global keyboard shortcuts (single-key, GitHub/Gmail pattern)

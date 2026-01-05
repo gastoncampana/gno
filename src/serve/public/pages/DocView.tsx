@@ -8,20 +8,24 @@ import {
   FileText,
   FolderOpen,
   HardDrive,
+  HomeIcon,
   Loader2Icon,
   PencilIcon,
   TagIcon,
   TextIcon,
   TrashIcon,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   CodeBlock,
   CodeBlockCopyButton,
 } from "../components/ai-elements/code-block";
 import { Loader } from "../components/ai-elements/loader";
+import { BacklinksPanel } from "../components/BacklinksPanel";
 import { MarkdownPreview } from "../components/editor";
+import { OutgoingLinksPanel } from "../components/OutgoingLinksPanel";
+import { RelatedNotesSidebar } from "../components/RelatedNotesSidebar";
 import { TagInput } from "../components/TagInput";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -181,27 +185,67 @@ export default function DocView({ navigate }: PageProps) {
   const [tagSaveError, setTagSaveError] = useState<string | null>(null);
   const [tagSaveSuccess, setTagSaveSuccess] = useState(false);
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const uri = params.get("uri");
+  // Request sequencing - ignore stale responses on rapid navigation
+  const requestIdRef = useRef(0);
 
-    if (!uri) {
+  // Track URL for reactivity when navigating between docs
+  const [currentUri, setCurrentUri] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("uri") ?? "";
+  });
+
+  // Listen for URL changes (popstate for back/forward, locationchange for navigate())
+  useEffect(() => {
+    const updateUri = () => {
+      const params = new URLSearchParams(window.location.search);
+      const newUri = params.get("uri") ?? "";
+      setCurrentUri(newUri);
+    };
+
+    // Listen for browser back/forward
+    window.addEventListener("popstate", updateUri);
+    // Listen for programmatic navigation via navigate()
+    window.addEventListener("locationchange", updateUri);
+
+    return () => {
+      window.removeEventListener("popstate", updateUri);
+      window.removeEventListener("locationchange", updateUri);
+    };
+  }, []);
+
+  // Fetch document when URI changes
+  useEffect(() => {
+    if (!currentUri) {
       setError("No document URI provided");
       setLoading(false);
       return;
     }
 
-    void apiFetch<DocData>(`/api/doc?uri=${encodeURIComponent(uri)}`).then(
-      ({ data, error }) => {
-        setLoading(false);
-        if (error) {
-          setError(error);
-        } else if (data) {
-          setDoc(data);
-        }
+    // Increment request ID to ignore stale responses
+    const currentRequestId = ++requestIdRef.current;
+
+    // Reset state for new document
+    setLoading(true);
+    setError(null);
+    setDoc(null);
+    setEditingTags(false);
+    setTagSaveSuccess(false);
+
+    void apiFetch<DocData>(
+      `/api/doc?uri=${encodeURIComponent(currentUri)}`
+    ).then(({ data, error: fetchError }) => {
+      // Ignore stale response if newer request was made
+      if (currentRequestId !== requestIdRef.current) {
+        return;
       }
-    );
-  }, []);
+      setLoading(false);
+      if (fetchError) {
+        setError(fetchError);
+      } else if (data) {
+        setDoc(data);
+      }
+    });
+  }, [currentUri]);
 
   const isMarkdown =
     doc?.source.ext &&
@@ -312,6 +356,16 @@ export default function DocView({ navigate }: PageProps) {
       {/* Header */}
       <header className="glass sticky top-0 z-10 border-border/50 border-b">
         <div className="flex items-center gap-4 px-8 py-4">
+          {/* Home button - Scholarly Dusk brass accent */}
+          <Button
+            aria-label="Go to dashboard"
+            className="size-8 p-0 text-[#d4a053] hover:bg-[#d4a053]/10 hover:text-[#d4a053]"
+            onClick={() => navigate("/")}
+            size="sm"
+            variant="ghost"
+          >
+            <HomeIcon className="size-4" />
+          </Button>
           <Button
             className="gap-2"
             onClick={() => navigate(-1)}
@@ -355,276 +409,307 @@ export default function DocView({ navigate }: PageProps) {
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl p-8">
-        {/* Loading */}
-        {loading && (
-          <div className="flex flex-col items-center justify-center gap-4 py-20">
-            <Loader className="text-primary" size={32} />
-            <p className="text-muted-foreground">Loading document...</p>
-          </div>
-        )}
+      <div className="mx-auto flex max-w-7xl gap-8 px-8">
+        {/* Main content */}
+        <main className="min-w-0 flex-1 py-8">
+          {/* Loading */}
+          {loading && (
+            <div className="flex flex-col items-center justify-center gap-4 py-20">
+              <Loader className="text-primary" size={32} />
+              <p className="text-muted-foreground">Loading document...</p>
+            </div>
+          )}
 
-        {/* Error */}
-        {error && (
-          <Card className="border-destructive bg-destructive/10">
-            <CardContent className="py-6 text-center">
-              <FileText className="mx-auto mb-4 size-12 text-destructive" />
-              <h3 className="mb-2 font-medium text-destructive text-lg">
-                Failed to load document
-              </h3>
-              <p className="text-muted-foreground">{error}</p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Document */}
-        {doc && (
-          <div className="animate-fade-in space-y-6 opacity-0">
-            {/* Breadcrumbs */}
-            {breadcrumbs.length > 0 && (
-              <nav className="flex items-center gap-1 text-sm">
-                <FolderOpen className="mr-1 size-4 text-muted-foreground" />
-                {breadcrumbs.map((crumb, i) => (
-                  <span className="flex items-center gap-1" key={crumb.label}>
-                    {i > 0 && (
-                      <ChevronRightIcon className="size-3 text-muted-foreground/50" />
-                    )}
-                    {crumb.path ? (
-                      <button
-                        className="text-muted-foreground transition-colors hover:text-foreground hover:underline"
-                        onClick={() => navigate(crumb.path)}
-                        type="button"
-                      >
-                        {crumb.label}
-                      </button>
-                    ) : (
-                      <span className="font-medium text-foreground">
-                        {crumb.label}
-                      </span>
-                    )}
-                  </span>
-                ))}
-              </nav>
-            )}
-
-            {/* Metadata */}
-            <Card>
-              <CardContent className="py-4">
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <div className="flex items-center gap-3">
-                    <FolderOpen className="size-4 text-muted-foreground" />
-                    <div>
-                      <div className="text-muted-foreground text-xs">
-                        Collection
-                      </div>
-                      <div className="font-medium">
-                        {doc.collection || "Unknown"}
-                      </div>
-                    </div>
-                  </div>
-                  {doc.source.sizeBytes !== undefined && (
-                    <div className="flex items-center gap-3">
-                      <HardDrive className="size-4 text-muted-foreground" />
-                      <div>
-                        <div className="text-muted-foreground text-xs">
-                          Size
-                        </div>
-                        <div className="font-medium">
-                          {formatBytes(doc.source.sizeBytes)}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {doc.source.modifiedAt && (
-                    <div className="flex items-center gap-3">
-                      <Calendar className="size-4 text-muted-foreground" />
-                      <div>
-                        <div className="text-muted-foreground text-xs">
-                          Modified
-                        </div>
-                        <div className="font-medium">
-                          {formatDate(doc.source.modifiedAt)}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div className="mt-4 border-border/50 border-t pt-4">
-                  <div className="mb-1 text-muted-foreground text-xs">Path</div>
-                  <code className="break-all font-mono text-muted-foreground text-sm">
-                    {doc.uri}
-                  </code>
-                </div>
+          {/* Error */}
+          {error && (
+            <Card className="border-destructive bg-destructive/10">
+              <CardContent className="py-6 text-center">
+                <FileText className="mx-auto mb-4 size-12 text-destructive" />
+                <h3 className="mb-2 font-medium text-destructive text-lg">
+                  Failed to load document
+                </h3>
+                <p className="text-muted-foreground">{error}</p>
               </CardContent>
             </Card>
+          )}
 
-            {/* Tags */}
-            <Card>
-              <CardContent className="py-4">
-                <div className="flex items-start gap-3">
-                  <TagIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-2 flex items-center justify-between">
-                      <div className="text-muted-foreground text-xs">Tags</div>
-                      {!editingTags && (
-                        <Button
-                          className="gap-1 text-xs"
-                          onClick={handleStartEditTags}
-                          size="sm"
-                          variant="ghost"
-                        >
-                          <PencilIcon className="size-3" />
-                          Edit
-                        </Button>
+          {/* Document */}
+          {doc && (
+            <div className="animate-fade-in space-y-6 opacity-0">
+              {/* Breadcrumbs */}
+              {breadcrumbs.length > 0 && (
+                <nav className="flex items-center gap-1 text-sm">
+                  <FolderOpen className="mr-1 size-4 text-muted-foreground" />
+                  {breadcrumbs.map((crumb, i) => (
+                    <span className="flex items-center gap-1" key={crumb.label}>
+                      {i > 0 && (
+                        <ChevronRightIcon className="size-3 text-muted-foreground/50" />
                       )}
-                      {tagSaveSuccess && (
-                        <span className="flex items-center gap-1 text-green-500 text-xs">
-                          <CheckIcon className="size-3" />
-                          Saved
+                      {crumb.path ? (
+                        <button
+                          className="text-muted-foreground transition-colors hover:text-foreground hover:underline"
+                          onClick={() => navigate(crumb.path)}
+                          type="button"
+                        >
+                          {crumb.label}
+                        </button>
+                      ) : (
+                        <span className="font-medium text-foreground">
+                          {crumb.label}
                         </span>
                       )}
-                    </div>
+                    </span>
+                  ))}
+                </nav>
+              )}
 
-                    {/* Display mode */}
-                    {!editingTags && (
-                      <div className="flex flex-wrap gap-1.5">
-                        {doc.tags.length === 0 ? (
-                          <span className="text-muted-foreground/60 text-sm italic">
-                            No tags
-                          </span>
-                        ) : (
-                          doc.tags.map((tag) => (
-                            <Badge
-                              className="font-mono text-xs"
-                              key={tag}
-                              variant="outline"
-                            >
-                              {tag}
-                            </Badge>
-                          ))
-                        )}
+              {/* Metadata */}
+              <Card>
+                <CardContent className="py-4">
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <div className="flex items-center gap-3">
+                      <FolderOpen className="size-4 text-muted-foreground" />
+                      <div>
+                        <div className="text-muted-foreground text-xs">
+                          Collection
+                        </div>
+                        <div className="font-medium">
+                          {doc.collection || "Unknown"}
+                        </div>
+                      </div>
+                    </div>
+                    {doc.source.sizeBytes !== undefined && (
+                      <div className="flex items-center gap-3">
+                        <HardDrive className="size-4 text-muted-foreground" />
+                        <div>
+                          <div className="text-muted-foreground text-xs">
+                            Size
+                          </div>
+                          <div className="font-medium">
+                            {formatBytes(doc.source.sizeBytes)}
+                          </div>
+                        </div>
                       </div>
                     )}
-
-                    {/* Edit mode */}
-                    {editingTags && (
-                      <div className="space-y-3">
-                        <TagInput
-                          aria-label="Edit document tags"
-                          disabled={savingTags}
-                          onChange={setEditedTags}
-                          placeholder="Add tags..."
-                          value={editedTags}
-                        />
-
-                        {tagSaveError && (
-                          <p className="text-destructive text-xs">
-                            {tagSaveError}
-                          </p>
-                        )}
-
-                        <div className="flex items-center gap-2">
-                          <Button
-                            disabled={savingTags}
-                            onClick={handleSaveTags}
-                            size="sm"
-                          >
-                            {savingTags && (
-                              <Loader2Icon className="mr-1.5 size-3 animate-spin" />
-                            )}
-                            Save
-                          </Button>
-                          <Button
-                            disabled={savingTags}
-                            onClick={handleCancelEditTags}
-                            size="sm"
-                            variant="outline"
-                          >
-                            Cancel
-                          </Button>
+                    {doc.source.modifiedAt && (
+                      <div className="flex items-center gap-3">
+                        <Calendar className="size-4 text-muted-foreground" />
+                        <div>
+                          <div className="text-muted-foreground text-xs">
+                            Modified
+                          </div>
+                          <div className="font-medium">
+                            {formatDate(doc.source.modifiedAt)}
+                          </div>
                         </div>
                       </div>
                     )}
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="mt-4 border-border/50 border-t pt-4">
+                    <div className="mb-1 text-muted-foreground text-xs">
+                      Path
+                    </div>
+                    <code className="break-all font-mono text-muted-foreground text-sm">
+                      {doc.uri}
+                    </code>
+                  </div>
+                </CardContent>
+              </Card>
 
-            {/* Content */}
-            <Card>
-              <CardHeader className="pb-0">
-                <CardTitle className="flex items-center justify-between text-lg">
-                  <span className="flex items-center gap-2">
-                    <FileText className="size-4" />
-                    Content
-                  </span>
-                  {isMarkdown && doc.contentAvailable && (
-                    <Button
-                      className="gap-1.5"
-                      onClick={() => setShowRawView(!showRawView)}
-                      size="sm"
-                      variant="ghost"
-                    >
-                      {showRawView ? (
-                        <>
-                          <TextIcon className="size-4" />
-                          <span className="hidden sm:inline">Rendered</span>
-                        </>
-                      ) : (
-                        <>
-                          <CodeIcon className="size-4" />
-                          <span className="hidden sm:inline">Source</span>
-                        </>
+              {/* Tags */}
+              <Card>
+                <CardContent className="py-4">
+                  <div className="flex items-start gap-3">
+                    <TagIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-2 flex items-center justify-between">
+                        <div className="text-muted-foreground text-xs">
+                          Tags
+                        </div>
+                        {!editingTags && (
+                          <Button
+                            className="gap-1 text-xs"
+                            onClick={handleStartEditTags}
+                            size="sm"
+                            variant="ghost"
+                          >
+                            <PencilIcon className="size-3" />
+                            Edit
+                          </Button>
+                        )}
+                        {tagSaveSuccess && (
+                          <span className="flex items-center gap-1 text-green-500 text-xs">
+                            <CheckIcon className="size-3" />
+                            Saved
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Display mode */}
+                      {!editingTags && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {doc.tags.length === 0 ? (
+                            <span className="text-muted-foreground/60 text-sm italic">
+                              No tags
+                            </span>
+                          ) : (
+                            doc.tags.map((tag) => (
+                              <Badge
+                                className="font-mono text-xs"
+                                key={tag}
+                                variant="outline"
+                              >
+                                {tag}
+                              </Badge>
+                            ))
+                          )}
+                        </div>
                       )}
-                    </Button>
+
+                      {/* Edit mode */}
+                      {editingTags && (
+                        <div className="space-y-3">
+                          <TagInput
+                            aria-label="Edit document tags"
+                            disabled={savingTags}
+                            onChange={setEditedTags}
+                            placeholder="Add tags..."
+                            value={editedTags}
+                          />
+
+                          {tagSaveError && (
+                            <p className="text-destructive text-xs">
+                              {tagSaveError}
+                            </p>
+                          )}
+
+                          <div className="flex items-center gap-2">
+                            <Button
+                              disabled={savingTags}
+                              onClick={handleSaveTags}
+                              size="sm"
+                            >
+                              {savingTags && (
+                                <Loader2Icon className="mr-1.5 size-3 animate-spin" />
+                              )}
+                              Save
+                            </Button>
+                            <Button
+                              disabled={savingTags}
+                              onClick={handleCancelEditTags}
+                              size="sm"
+                              variant="outline"
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Content */}
+              <Card>
+                <CardHeader className="pb-0">
+                  <CardTitle className="flex items-center justify-between text-lg">
+                    <span className="flex items-center gap-2">
+                      <FileText className="size-4" />
+                      Content
+                    </span>
+                    {isMarkdown && doc.contentAvailable && (
+                      <Button
+                        className="gap-1.5"
+                        onClick={() => setShowRawView(!showRawView)}
+                        size="sm"
+                        variant="ghost"
+                      >
+                        {showRawView ? (
+                          <>
+                            <TextIcon className="size-4" />
+                            <span className="hidden sm:inline">Rendered</span>
+                          </>
+                        ) : (
+                          <>
+                            <CodeIcon className="size-4" />
+                            <span className="hidden sm:inline">Source</span>
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4">
+                  {!doc.contentAvailable && (
+                    <div className="rounded-lg border border-border/50 bg-muted/30 p-6 text-center">
+                      <p className="text-muted-foreground">
+                        Content not available (document may need re-indexing)
+                      </p>
+                    </div>
                   )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-4">
-                {!doc.contentAvailable && (
-                  <div className="rounded-lg border border-border/50 bg-muted/30 p-6 text-center">
-                    <p className="text-muted-foreground">
-                      Content not available (document may need re-indexing)
-                    </p>
-                  </div>
-                )}
-                {doc.contentAvailable && isMarkdown && !showRawView && (
-                  <div className="rounded-lg border border-border/40 bg-gradient-to-br from-background to-muted/10 p-6 shadow-inner">
-                    <MarkdownPreview content={doc.content ?? ""} />
-                  </div>
-                )}
-                {doc.contentAvailable && isMarkdown && showRawView && (
-                  <CodeBlock
-                    code={doc.content ?? ""}
-                    language={"markdown" as BundledLanguage}
-                    showLineNumbers
-                  >
-                    <CodeBlockCopyButton />
-                  </CodeBlock>
-                )}
-                {doc.contentAvailable && isCodeFile && !isMarkdown && (
-                  <CodeBlock
-                    code={doc.content ?? ""}
-                    language={
-                      getLanguageFromExt(doc.source.ext) as BundledLanguage
-                    }
-                    showLineNumbers
-                  >
-                    <CodeBlockCopyButton />
-                  </CodeBlock>
-                )}
-                {doc.contentAvailable && !isCodeFile && (
-                  <div className="rounded-lg border border-border/50 bg-muted/30 p-6">
-                    <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed">
-                      {doc.content}
-                    </pre>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                  {doc.contentAvailable && isMarkdown && !showRawView && (
+                    <div className="rounded-lg border border-border/40 bg-gradient-to-br from-background to-muted/10 p-6 shadow-inner">
+                      <MarkdownPreview content={doc.content ?? ""} />
+                    </div>
+                  )}
+                  {doc.contentAvailable && isMarkdown && showRawView && (
+                    <CodeBlock
+                      code={doc.content ?? ""}
+                      language={"markdown" as BundledLanguage}
+                      showLineNumbers
+                    >
+                      <CodeBlockCopyButton />
+                    </CodeBlock>
+                  )}
+                  {doc.contentAvailable && isCodeFile && !isMarkdown && (
+                    <CodeBlock
+                      code={doc.content ?? ""}
+                      language={
+                        getLanguageFromExt(doc.source.ext) as BundledLanguage
+                      }
+                      showLineNumbers
+                    >
+                      <CodeBlockCopyButton />
+                    </CodeBlock>
+                  )}
+                  {doc.contentAvailable && !isCodeFile && (
+                    <div className="rounded-lg border border-border/50 bg-muted/30 p-6">
+                      <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed">
+                        {doc.content}
+                      </pre>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </main>
+
+        {/* Right sidebar - Link panels */}
+        {doc && (
+          <aside className="hidden w-72 shrink-0 space-y-4 py-8 lg:block">
+            <BacklinksPanel
+              docId={doc.docid}
+              onNavigate={(uri) =>
+                navigate(`/doc?uri=${encodeURIComponent(uri)}`)
+              }
+            />
+            <OutgoingLinksPanel
+              docId={doc.docid}
+              onNavigate={(uri) =>
+                navigate(`/doc?uri=${encodeURIComponent(uri)}`)
+              }
+            />
+            <RelatedNotesSidebar
+              docId={doc.docid}
+              onNavigate={(uri) =>
+                navigate(`/doc?uri=${encodeURIComponent(uri)}`)
+              }
+            />
+          </aside>
         )}
-      </main>
+      </div>
 
       {/* Delete confirmation dialog */}
       <Dialog onOpenChange={setDeleteDialogOpen} open={deleteDialogOpen}>

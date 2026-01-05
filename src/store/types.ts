@@ -673,6 +673,22 @@ export interface StorePort {
     options?: { collection?: string }
   ): Promise<StoreResult<BacklinkRow[]>>;
 
+  /**
+   * Resolve link targets to their documents.
+   * Returns array of resolved docs (or null for unresolved) matching input order.
+   */
+  resolveLinks(
+    targets: Array<{
+      targetRefNorm: string;
+      targetCollection: string;
+      linkType: "wiki" | "markdown";
+    }>
+  ): Promise<
+    StoreResult<
+      Array<{ docid: string; uri: string; title: string | null } | null>
+    >
+  >;
+
   // ─────────────────────────────────────────────────────────────────────────
   // Status
   // ─────────────────────────────────────────────────────────────────────────

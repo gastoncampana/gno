@@ -38,7 +38,14 @@ export interface OutgoingLink {
   endLine: number;
   endCol: number;
   source: string;
+  /** Whether target was resolved (found in index) */
   resolved?: boolean;
+  /** Resolved target document ID */
+  targetDocid?: string;
+  /** Resolved target URI */
+  targetUri?: string;
+  /** Resolved target title */
+  targetTitle?: string;
 }
 
 /** API response shape */
@@ -100,19 +107,13 @@ function LinkItem({
 }) {
   const isWiki = link.linkType === "wiki";
   const isBroken = link.resolved === false;
-  const displayText = link.linkText || link.targetRef;
-
-  // Build navigation URI
-  const buildUri = () => {
-    if (link.targetCollection) {
-      return `${link.targetCollection}:${link.targetRefNorm}`;
-    }
-    return link.targetRefNorm;
-  };
+  // Use resolved title if available, fall back to linkText or targetRef
+  const displayText = link.targetTitle || link.linkText || link.targetRef;
 
   const handleClick = () => {
-    if (onNavigate && !isBroken) {
-      onNavigate(buildUri());
+    // Only navigate if resolved and we have target URI
+    if (onNavigate && link.targetUri) {
+      onNavigate(link.targetUri);
     }
   };
 

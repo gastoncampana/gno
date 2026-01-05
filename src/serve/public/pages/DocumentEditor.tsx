@@ -12,10 +12,12 @@
 import {
   AlertCircleIcon,
   ArrowLeftIcon,
+  BookOpenIcon,
   CheckIcon,
   CloudIcon,
   EyeIcon,
   EyeOffIcon,
+  HomeIcon,
   LinkIcon,
   Loader2Icon,
   PenIcon,
@@ -135,6 +137,10 @@ export default function DocumentEditor({ navigate }: PageProps) {
   const [showPreview, setShowPreview] = useState(true);
   const [syncScroll, setSyncScroll] = useState(true);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  /** Where to navigate after dialog action (-1 for back, or URL string) */
+  const [pendingNavigation, setPendingNavigation] = useState<
+    string | number | null
+  >(null);
   const editorRef = useRef<CodeMirrorEditorRef>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   // Event-based suppression: ignore the echo event caused by programmatic scroll
@@ -379,28 +385,46 @@ export default function DocumentEditor({ navigate }: PageProps) {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
-  // Handle close/back
+  // Handle close/back - goes to browser history
   const handleClose = () => {
     if (hasUnsavedChanges) {
+      setPendingNavigation(-1);
       setShowUnsavedDialog(true);
     } else {
       navigate(-1);
     }
   };
 
-  // Discard and close
-  const handleDiscardAndClose = () => {
-    setShowUnsavedDialog(false);
-    navigate(-1);
+  // Handle view doc - goes to doc view page
+  const handleViewDoc = () => {
+    const viewUrl = `/doc?uri=${encodeURIComponent(doc?.uri ?? "")}`;
+    if (hasUnsavedChanges) {
+      setPendingNavigation(viewUrl);
+      setShowUnsavedDialog(true);
+    } else {
+      navigate(viewUrl);
+    }
   };
 
-  // Save and close
-  const handleSaveAndClose = async () => {
+  // Discard and navigate
+  const handleDiscardAndNavigate = () => {
+    setShowUnsavedDialog(false);
+    if (pendingNavigation !== null) {
+      navigate(pendingNavigation);
+      setPendingNavigation(null);
+    }
+  };
+
+  // Save and navigate
+  const handleSaveAndNavigate = async () => {
     await saveDocument(content);
     // Trigger embedding (fire and forget)
     void apiFetch("/api/embed", { method: "POST" });
     setShowUnsavedDialog(false);
-    navigate(-1);
+    if (pendingNavigation !== null) {
+      navigate(pendingNavigation);
+      setPendingNavigation(null);
+    }
   };
 
   // Save status indicator
@@ -485,6 +509,17 @@ export default function DocumentEditor({ navigate }: PageProps) {
       {/* Toolbar */}
       <header className="glass shrink-0 border-border/50 border-b">
         <div className="flex items-center gap-3 px-4 py-2">
+          {/* Home button - Scholarly Dusk brass accent */}
+          <Button
+            aria-label="Go to dashboard"
+            className="size-8 p-0 text-[#d4a053] hover:bg-[#d4a053]/10 hover:text-[#d4a053]"
+            onClick={() => navigate("/")}
+            size="sm"
+            variant="ghost"
+          >
+            <HomeIcon className="size-4" />
+          </Button>
+
           {/* Back button */}
           <Button
             className="gap-1.5"
@@ -495,6 +530,27 @@ export default function DocumentEditor({ navigate }: PageProps) {
             <ArrowLeftIcon className="size-4" />
             <span className="hidden sm:inline">Back</span>
           </Button>
+
+          {/* View document (exit edit mode) */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  aria-label="Exit edit mode and view document"
+                  className="gap-1.5 border-[#d4a053]/30 text-[#4db8a8] hover:border-[#d4a053]/50 hover:bg-[#4db8a8]/10 hover:text-[#4db8a8]"
+                  onClick={handleViewDoc}
+                  size="sm"
+                  variant="outline"
+                >
+                  <BookOpenIcon className="size-4" />
+                  <span className="hidden sm:inline">View</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Exit edit mode</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
           <Separator className="h-5" orientation="vertical" />
 
@@ -627,15 +683,18 @@ export default function DocumentEditor({ navigate }: PageProps) {
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button
-              onClick={() => setShowUnsavedDialog(false)}
+              onClick={() => {
+                setShowUnsavedDialog(false);
+                setPendingNavigation(null);
+              }}
               variant="outline"
             >
               Cancel
             </Button>
-            <Button onClick={handleDiscardAndClose} variant="destructive">
+            <Button onClick={handleDiscardAndNavigate} variant="destructive">
               Discard
             </Button>
-            <Button onClick={handleSaveAndClose}>Save & Close</Button>
+            <Button onClick={handleSaveAndNavigate}>Save & Continue</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -23,8 +23,8 @@ import {
 interface Backlink {
   sourceDocid: string;
   sourceUri: string;
-  sourceTitle: string;
-  linkText: string;
+  sourceTitle?: string;
+  linkText?: string;
   startLine: number;
   startCol: number;
 }
@@ -119,8 +119,8 @@ function BacklinksEmpty() {
   );
 }
 
-/** Individual backlink card */
-function BacklinkCard({
+/** Individual backlink item - matches OutgoingLinksPanel row style */
+function BacklinkItem({
   backlink,
   onNavigate,
 }: {
@@ -131,57 +131,42 @@ function BacklinkCard({
   const displayName =
     backlink.sourceTitle || backlink.sourceUri.split("/").pop() || "Untitled";
 
-  // Truncate context if too long
-  const contextSnippet =
-    backlink.linkText.length > 120
-      ? `${backlink.linkText.slice(0, 120)}…`
-      : backlink.linkText;
-
   return (
     <button
       aria-label={`Navigate to ${displayName}`}
       className={cn(
-        // Index card aesthetic on dark
-        "group relative w-full text-left",
-        "rounded border border-[#d4a053]/15 bg-[#050505]/60",
-        "p-2.5 transition-all duration-200",
-        // Hover - card lifts, brass glow
-        "hover:border-[#d4a053]/40 hover:bg-[#050505]/80",
-        "hover:shadow-[0_2px_8px_rgba(212,160,83,0.12)]",
-        // Focus state - teal ring
-        "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4db8a8]/50"
+        // Base styling - matches OutgoingLinksPanel
+        "group relative flex w-full items-center gap-2.5",
+        "rounded px-2.5 py-2",
+        "font-mono text-xs",
+        "transition-all duration-150",
+        "text-left",
+        // Brass accent for backlinks (vs teal for outgoing)
+        "text-[#d4a053]",
+        "hover:bg-[#d4a053]/10",
+        "cursor-pointer hover:translate-x-0.5",
+        // Focus state
+        "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#d4a053]/50"
       )}
       onClick={() => onNavigate?.(backlink.sourceUri)}
       type="button"
     >
-      {/* Brass corner accent */}
-      <div className="absolute top-0 right-0 size-2 border-t border-r border-[#d4a053]/30 transition-colors group-hover:border-[#d4a053]/60" />
+      {/* Icon with rounded background */}
+      <span
+        className={cn(
+          "flex size-5 shrink-0 items-center justify-center rounded",
+          "bg-[#d4a053]/15 transition-colors duration-150",
+          "group-hover:bg-[#d4a053]/25"
+        )}
+      >
+        <LinkIcon className="size-3" />
+      </span>
 
-      {/* Source document title */}
-      <div className="mb-1.5 flex items-start gap-1.5">
-        <LinkIcon className="mt-0.5 size-3 shrink-0 text-[#d4a053]/60" />
-        <span className="line-clamp-1 font-mono text-[11px] text-foreground/90 leading-tight">
-          {displayName}
-        </span>
-      </div>
-
-      {/* Context snippet - highlighted marginalia feel */}
-      {contextSnippet && (
-        <div
-          className={cn(
-            "ml-4.5 border-l-2 border-[#4db8a8]/20 pl-2",
-            "transition-colors group-hover:border-[#4db8a8]/40"
-          )}
-        >
-          <p className="line-clamp-2 text-[10px] text-muted-foreground/70 italic leading-relaxed">
-            &ldquo;{contextSnippet}&rdquo;
-          </p>
-        </div>
-      )}
-
-      {/* Line reference - brass plate style */}
-      <div className="mt-1.5 flex justify-end">
-        <span className="rounded bg-[#d4a053]/10 px-1 py-0.5 font-mono text-[9px] text-[#d4a053]/60 tabular-nums">
+      {/* Document title */}
+      <div className="min-w-0 flex-1">
+        <span className="block truncate">{displayName}</span>
+        {/* Line reference as subtitle */}
+        <span className="block truncate text-[10px] opacity-60">
           L{backlink.startLine}:{backlink.startCol}
         </span>
       </div>
@@ -320,9 +305,9 @@ export function BacklinksPanel({
         ) : backlinks.length === 0 ? (
           <BacklinksEmpty />
         ) : (
-          <div className="space-y-1.5 p-2">
+          <div className="space-y-0.5 p-2">
             {backlinks.map((bl) => (
-              <BacklinkCard
+              <BacklinkItem
                 backlink={bl}
                 key={`${bl.sourceDocid}-${bl.startLine}-${bl.startCol}`}
                 onNavigate={onNavigate}

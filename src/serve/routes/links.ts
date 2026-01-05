@@ -26,6 +26,14 @@ export interface LinkResponse {
     endLine: number;
     endCol: number;
     source: "parsed" | "user" | "suggested";
+    /** Whether target doc was resolved (found in index) */
+    resolved?: boolean;
+    /** Resolved target document ID (if found) */
+    targetDocid?: string;
+    /** Resolved target URI (if found) */
+    targetUri?: string;
+    /** Resolved target title (if found) */
+    targetTitle?: string;
   }>;
   meta: {
     docid: string;
@@ -111,7 +119,7 @@ function parseThreshold(value: string | null, defaultValue: number): number {
 
 /**
  * GET /api/doc/:id/links
- * List outgoing links from a document.
+ * List outgoing links from a document with resolved target info.
  * Query params: ?type=wiki|markdown (optional filter)
  */
 export async function handleDocLinks(
@@ -160,21 +168,41 @@ export async function handleDocLinks(
     return a.startCol - b.startCol;
   });
 
-  const response: LinkResponse = {
-    links: links.map((l) => ({
-      targetRef: l.targetRef,
+  // Resolve targets - batch query for efficiency
+  // Note: targetCollection may be empty string "" for same-collection links
+  const resolvedTargets = await store.resolveLinks(
+    links.map((l) => ({
       targetRefNorm: l.targetRefNorm,
-      // Only include optional fields if present
-      ...(l.targetAnchor && { targetAnchor: l.targetAnchor }),
-      ...(l.targetCollection && { targetCollection: l.targetCollection }),
+      targetCollection: l.targetCollection || doc.collection,
       linkType: l.linkType,
-      ...(l.linkText && { linkText: l.linkText }),
-      startLine: l.startLine,
-      startCol: l.startCol,
-      endLine: l.endLine,
-      endCol: l.endCol,
-      source: l.source,
-    })),
+    }))
+  );
+
+  const response: LinkResponse = {
+    links: links.map((l, idx) => {
+      const resolved = resolvedTargets.ok ? resolvedTargets.value[idx] : null;
+      return {
+        targetRef: l.targetRef,
+        targetRefNorm: l.targetRefNorm,
+        // Only include optional fields if present
+        ...(l.targetAnchor && { targetAnchor: l.targetAnchor }),
+        ...(l.targetCollection && { targetCollection: l.targetCollection }),
+        linkType: l.linkType,
+        ...(l.linkText && { linkText: l.linkText }),
+        startLine: l.startLine,
+        startCol: l.startCol,
+        endLine: l.endLine,
+        endCol: l.endCol,
+        source: l.source,
+        // Resolved target info
+        resolved: resolved !== null,
+        ...(resolved && {
+          targetDocid: resolved.docid,
+          targetUri: resolved.uri,
+          targetTitle: resolved.title ?? undefined,
+        }),
+      };
+    }),
     meta: {
       docid: doc.docid,
       totalLinks: links.length,
