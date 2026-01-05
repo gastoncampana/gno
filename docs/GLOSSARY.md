@@ -110,6 +110,41 @@ Technique where an LLM generates a hypothetical document answering the query. Th
 
 See [How Search Works](HOW-SEARCH-WORKS.md#query-expansion-with-hyde) for details.
 
+## Link Terms
+
+### Wiki Link
+
+Internal document link using `[[double bracket]]` syntax. GNO supports:
+
+- `[[Target]]` - basic link
+- `[[Target|Display]]` - link with custom display text
+- `[[Target#Heading]]` - link to section anchor
+- `[[collection:Target]]` - cross-collection link
+
+### Markdown Link
+
+Standard markdown `[text](path.md)` links to other documents. Only internal links are tracked—external URLs are ignored.
+
+### Backlink
+
+A document that links TO a given document. If "Note A" contains `[[Note B]]`, then "Note A" is a backlink of "Note B". Enables Zettelkasten-style bidirectional navigation.
+
+### Outgoing Link
+
+A link FROM a document to another document. The inverse of backlink.
+
+### Similar Documents
+
+Documents that are semantically related based on vector similarity. Found using the hybrid search pipeline on document content.
+
+### Link Resolution
+
+Process of matching link targets to actual documents. Wiki links use case-insensitive filename matching; markdown links use resolved paths. Resolution happens at query time, not during indexing.
+
+### Cross-Collection Link
+
+Link between documents in different collections using `[[collection:Target]]` syntax.
+
 ## Storage Terms
 
 ### Source

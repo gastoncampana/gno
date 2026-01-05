@@ -138,6 +138,8 @@ CLI/MCP/Web UI → new Adapter() → adapter.createPort() → Port interface →
 | content_chunks  | Chunked text (800 tokens each)                 |
 | documents_fts   | Document-level FTS5 with Snowball stemmer      |
 | content_vectors | Chunk embeddings with title context (optional) |
+| doc_tags        | Document tags (frontmatter and user-added)     |
+| doc_links       | Wiki and markdown links between documents      |
 
 ### Content Addressing
 
@@ -199,6 +201,42 @@ Run `gno doctor` to check component status.
 | `~/Library/Caches/gno/models/` | Model cache |
 
 Run `gno doctor` to see resolved paths.
+
+## Link System
+
+GNO extracts and tracks links between documents:
+
+### Link Types
+
+| Type     | Syntax                  | Example                   |
+| -------- | ----------------------- | ------------------------- |
+| Wiki     | `[[Target]]`            | `[[My Note]]`             |
+| Wiki     | `[[Target\|Display]]`   | `[[My Note\|click here]]` |
+| Wiki     | `[[Target#Heading]]`    | `[[My Note#Section]]`     |
+| Wiki     | `[[collection:Target]]` | `[[work:Project Plan]]`   |
+| Markdown | `[text](path.md)`       | `[docs](./README.md)`     |
+
+External URLs (https://) are NOT stored—only internal document links.
+
+### Resolution
+
+Links are resolved at query time, not stored with target document IDs. This handles document renames gracefully:
+
+- **Wiki links**: Case-insensitive filename match via normalized reference
+- **Cross-collection**: `[[collection:Note]]` syntax with explicit collection prefix
+- **Markdown links**: Resolved path stored for matching
+
+### Storage
+
+The `doc_links` table stores:
+
+- Source document reference
+- Link type (wiki/markdown)
+- Target reference (raw and normalized)
+- Position (line/column for editor integration)
+- Optional anchor (#section) and display text
+
+Links are extracted from original source content during sync, excluding frontmatter and code blocks.
 
 ## Technical Notes
 

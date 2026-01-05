@@ -242,6 +242,30 @@ The Ask page provides RAG-powered Q&A:
 3. Local LLM synthesizes answer from top results
 4. Citations link to source documents
 
+### Document Sidebar
+
+The document view includes a collapsible sidebar with link information:
+
+**Backlinks Panel**: Shows documents that link TO the current document. Useful for seeing what notes reference this one, enabling Zettelkasten-style navigation.
+
+**Outgoing Links Panel**: Shows links FROM the current document to other documents.
+
+- Wiki links: `[[Note Name]]`
+- Markdown links: `[text](path.md)`
+- Broken links shown with red indicator when target doesn't exist
+
+**Related Notes Panel**: Shows semantically similar documents based on vector similarity. Toggle on/off, with similarity scores shown as percentage bars. Great for discovering connections you didn't know existed.
+
+### Wiki Link Autocomplete
+
+When editing documents, type `[[` to trigger wiki link autocomplete:
+
+- Fuzzy matching against all indexed documents
+- Cross-collection suggestions with `collection:` prefix
+- Keyboard navigation: ↑/↓ to select, Enter to insert, Escape to cancel
+- "Create [[query]]" option to create new notes
+- Maximum 8 suggestions shown
+
 ### Tags
 
 Tags provide hierarchical classification for your documents. Use the Search page sidebar and document views to filter and manage tags.

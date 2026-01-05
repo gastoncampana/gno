@@ -124,6 +124,23 @@
     - "gno query 'topic' --tags-all status/active"
     - "gno tag set doc.md api,v2"
 
+- slug: note-linking
+  title: Note Linking
+  headline: Navigate Your Knowledge Graph
+  description: Wiki links, backlinks, and semantic similarity for connected notes. Build a personal knowledge graph with bidirectional navigation, cross-collection links, and AI-powered related note discovery.
+  icon: link
+  benefits:
+    - "[[Wiki links]] and [Markdown](links)"
+    - Backlinks show who references you
+    - Cross-collection linking
+    - Semantic similar notes via vectors
+    - Broken link indicators
+    - Wiki link autocomplete in editor
+  commands:
+    - "gno links doc.md"
+    - "gno backlinks doc.md"
+    - "gno similar doc.md"
+
 - slug: collections
   title: Collections
   headline: Organize Your Knowledge

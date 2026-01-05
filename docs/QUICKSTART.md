@@ -105,6 +105,21 @@ gno query "auth" --tags-all backend,security
 gno query "meeting" --tags-any urgent,priority
 ```
 
+### Explore Links
+
+Documents can link to each other using wiki links (`[[Note]]`) or markdown links (`[text](path.md)`). GNO tracks these relationships:
+
+```bash
+# Show links FROM a document
+gno links my-note.md
+
+# Show documents linking TO this document (backlinks)
+gno backlinks my-note.md
+
+# Find semantically similar documents
+gno similar my-note.md
+```
+
 ### Re-Index After Changes
 
 ```bash

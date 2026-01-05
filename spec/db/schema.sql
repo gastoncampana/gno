@@ -13,6 +13,7 @@
 --   llm_cache         - Cached LLM responses (EPIC 6+)
 --   ingest_errors     - Conversion/indexing error records
 --   doc_tags          - Document tags (frontmatter and user-added)
+--   doc_links         - Wiki and markdown links between documents
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Schema Metadata
@@ -222,3 +223,41 @@ CREATE TABLE IF NOT EXISTS doc_tags (
 
 CREATE INDEX IF NOT EXISTS idx_doc_tags_tag ON doc_tags(tag);
 CREATE INDEX IF NOT EXISTS idx_doc_tags_source ON doc_tags(source);
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Document Links (wiki links and markdown links)
+-- ─────────────────────────────────────────────────────────────────────────────
+
+-- Links extracted from document content during sync.
+-- Resolution is done at query time (no stored target_doc_id) to handle renames.
+--
+-- Link types:
+--   wiki     - [[Target]], [[Target|Display]], [[Target#Heading]], [[collection:Target]]
+--   markdown - [Display](path/to/doc.md) (relative/absolute within collection)
+--
+-- Note: External URLs (https://) are NOT stored.
+
+CREATE TABLE IF NOT EXISTS doc_links (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  source_doc_id INTEGER NOT NULL,         -- Document containing the link
+  link_type TEXT NOT NULL CHECK (link_type IN ('wiki', 'markdown')),
+  target_ref TEXT NOT NULL,               -- Raw reference as written
+  target_ref_norm TEXT NOT NULL,          -- Normalized for matching (wiki=NFC+lowercase, md=resolved path)
+  target_anchor TEXT,                     -- #section if present
+  target_collection TEXT,                 -- Explicit collection: prefix if used
+  link_text TEXT,                         -- Display text if different from target
+  start_line INTEGER NOT NULL,            -- 1-based line number
+  start_col INTEGER NOT NULL,             -- 1-based column in line
+  end_line INTEGER NOT NULL,
+  end_col INTEGER NOT NULL,
+  source TEXT NOT NULL DEFAULT 'parsed' CHECK (source IN ('parsed', 'user', 'suggested')),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(source_doc_id, start_line, start_col, link_type),
+  FOREIGN KEY (source_doc_id) REFERENCES documents(id) ON DELETE CASCADE
+);
+
+-- Index for finding all links from a document
+CREATE INDEX IF NOT EXISTS idx_doc_links_source ON doc_links(source_doc_id);
+
+-- Index for resolving links (backlinks query)
+CREATE INDEX IF NOT EXISTS idx_doc_links_resolve ON doc_links(link_type, target_ref_norm, target_collection);
