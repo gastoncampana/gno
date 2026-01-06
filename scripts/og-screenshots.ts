@@ -4,14 +4,13 @@
  * Usage: bun scripts/og-screenshots.ts [--file og-template.html]
  */
 
-import { join, basename } from "node:path";
+import { basename, join } from "node:path";
 import { parseArgs } from "node:util";
-import { chromium } from "playwright";
+import { type Browser, chromium } from "playwright";
 
 const OG_DIR = join(import.meta.dir, "../website/assets/images/og");
 
-async function screenshot(htmlFile: string): Promise<void> {
-  const browser = await chromium.launch();
+async function screenshot(browser: Browser, htmlFile: string): Promise<void> {
   const page = await browser.newPage();
 
   // OG images are 1200x630
@@ -31,7 +30,7 @@ async function screenshot(htmlFile: string): Promise<void> {
     clip: { x: 0, y: 0, width: 1200, height: 630 },
   });
 
-  await browser.close();
+  await page.close();
 
   const name = basename(htmlPath, ".html");
   console.log(`✓ ${name}.png`);
@@ -82,8 +81,15 @@ Examples:
 
   console.log(`Generating ${files.length} OG image(s)...\n`);
 
-  for (const file of files) {
-    await screenshot(file);
+  // Launch browser once, reuse for all screenshots
+  const browser = await chromium.launch();
+
+  try {
+    for (const file of files) {
+      await screenshot(browser, file);
+    }
+  } finally {
+    await browser.close();
   }
 
   console.log(`\nDone. PNGs saved to website/assets/images/og/`);
