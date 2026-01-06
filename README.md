@@ -7,6 +7,8 @@
 [![Website](./assets/badges/website.svg)](https://gno.sh)
 [![Twitter](./assets/badges/twitter.svg)](https://twitter.com/gmickel)
 
+> **ClawdHub**: GNO skills bundled for Clawdbot — [clawdhub.com/gmickel/gno](https://clawdhub.com/gmickel/gno)
+
 ![GNO](./assets/og-image.png)
 
 GNO is a local knowledge engine that turns your documents into a searchable, connected knowledge graph. Index notes, code, PDFs, and Office docs. Get hybrid search, AI answers with citations, and wiki-style note linking—all 100% offline.
