@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.1] - 2026-01-14
+
+### Added
+
+- **Verbose embedding errors** - `--verbose` flag now logs embedding failures to stderr
+  - `gno index --verbose` and `gno embed --verbose` show batch failures, count mismatches, and store errors
+  - Helps debug when `gno index` reports errors without details
+
 ## [0.14.0] - 2026-01-10
 
 ### Changed
