@@ -23,7 +23,7 @@ import {
   PenIcon,
   UnlinkIcon,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Loader } from "../components/ai-elements/loader";
 import {
@@ -31,6 +31,10 @@ import {
   type CodeMirrorEditorRef,
   MarkdownPreview,
 } from "../components/editor";
+import {
+  FrontmatterDisplay,
+  parseFrontmatter,
+} from "../components/FrontmatterDisplay";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import {
@@ -148,6 +152,8 @@ export default function DocumentEditor({ navigate }: PageProps) {
   const ignoreNextPreviewScroll = useRef(false);
 
   const hasUnsavedChanges = content !== originalContent;
+  const parsedContent = useMemo(() => parseFrontmatter(content), [content]);
+  const hasFrontmatter = Object.keys(parsedContent.data).length > 0;
 
   // Reset ignore flags when sync is toggled to prevent stale state
   useEffect(() => {
@@ -666,7 +672,13 @@ export default function DocumentEditor({ navigate }: PageProps) {
             ref={previewRef}
           >
             <div className="mx-auto max-w-3xl">
-              <MarkdownPreview content={content} />
+              {hasFrontmatter && (
+                <FrontmatterDisplay
+                  className="mb-4 rounded-lg border border-border/40 bg-muted/10 p-4"
+                  content={content}
+                />
+              )}
+              <MarkdownPreview content={parsedContent.body} />
             </div>
           </div>
         )}

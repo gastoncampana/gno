@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.2] - 2026-01-14
+
+### Added
+
+- Frontmatter metadata grid in doc view and edit preview
+
+### Fixed
+
+- Strip frontmatter from markdown preview rendering
+- Prevent frontmatter URL overflow in UI
+- Stop dev CSS flicker by relying on built stylesheet
+
 ## [0.14.1] - 2026-01-14
 
 ### Added

@@ -15,7 +15,7 @@ import {
   TextIcon,
   TrashIcon,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   CodeBlock,
@@ -24,6 +24,10 @@ import {
 import { Loader } from "../components/ai-elements/loader";
 import { BacklinksPanel } from "../components/BacklinksPanel";
 import { MarkdownPreview } from "../components/editor";
+import {
+  FrontmatterDisplay,
+  parseFrontmatter,
+} from "../components/FrontmatterDisplay";
 import { OutgoingLinksPanel } from "../components/OutgoingLinksPanel";
 import { RelatedNotesSidebar } from "../components/RelatedNotesSidebar";
 import { TagInput } from "../components/TagInput";
@@ -271,6 +275,16 @@ export default function DocView({ navigate }: PageProps) {
       ".sh",
       ".bash",
     ].includes(doc.source.ext.toLowerCase());
+
+  // Parse frontmatter for markdown files
+  const parsedContent = useMemo(() => {
+    if (!doc?.content || !isMarkdown) {
+      return { data: {}, body: doc?.content ?? "" };
+    }
+    return parseFrontmatter(doc.content);
+  }, [doc?.content, isMarkdown]);
+
+  const hasFrontmatter = Object.keys(parsedContent.data).length > 0;
 
   const breadcrumbs = doc ? parseBreadcrumbs(doc.collection, doc.relPath) : [];
 
@@ -649,8 +663,16 @@ export default function DocView({ navigate }: PageProps) {
                     </div>
                   )}
                   {doc.contentAvailable && isMarkdown && !showRawView && (
-                    <div className="rounded-lg border border-border/40 bg-gradient-to-br from-background to-muted/10 p-6 shadow-inner">
-                      <MarkdownPreview content={doc.content ?? ""} />
+                    <div className="space-y-4">
+                      {hasFrontmatter && (
+                        <FrontmatterDisplay
+                          className="rounded-lg border border-border/40 bg-muted/10 p-4"
+                          content={doc.content ?? ""}
+                        />
+                      )}
+                      <div className="rounded-lg border border-border/40 bg-gradient-to-br from-background to-muted/10 p-6 shadow-inner">
+                        <MarkdownPreview content={parsedContent.body} />
+                      </div>
                     </div>
                   )}
                   {doc.contentAvailable && isMarkdown && showRawView && (

@@ -13,7 +13,6 @@ import DocumentEditor from "./pages/DocumentEditor";
 import DocView from "./pages/DocView";
 import GraphView from "./pages/GraphView";
 import Search from "./pages/Search";
-import "./globals.css";
 
 type Route =
   | "/"
