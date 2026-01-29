@@ -6,7 +6,7 @@
 [![MIT License](./assets/badges/license.svg)](./LICENSE)
 [![Website](./assets/badges/website.svg)](https://gno.sh)
 [![Twitter](./assets/badges/twitter.svg)](https://twitter.com/gmickel)
-[![Discord](./assets/badges/discord.svg)](https://discord.gg/ST5Y39hQ)
+[![Discord](./assets/badges/discord.svg)](https://discord.gg/nHEmyJB5tg)
 
 > **ClawdHub**: GNO skills bundled for Clawdbot — [clawdhub.com/gmickel/gno](https://clawdhub.com/gmickel/gno)
 

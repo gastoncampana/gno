@@ -113,7 +113,7 @@ function App() {
             <span className="text-border">·</span>
             <a
               className="transition-colors hover:text-foreground"
-              href="https://discord.gg/ST5Y39hQ"
+              href="https://discord.gg/nHEmyJB5tg"
               rel="noopener noreferrer"
               target="_blank"
             >
