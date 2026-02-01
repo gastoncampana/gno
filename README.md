@@ -32,7 +32,14 @@ GNO is a local knowledge engine that turns your documents into a searchable, con
 
 ---
 
-## What's New in v0.13
+## What's New in v0.15
+
+- **HTTP Backends**: Offload embedding, reranking, and generation to remote GPU servers
+- Simple URI config: `http://host:port/path#modelname`
+- Works with llama-server, Ollama, LocalAI, vLLM
+- Run GNO on lightweight machines while GPU inference runs on your network
+
+### v0.13
 
 - **Knowledge Graph**: Interactive force-directed visualization of document connections
 - **Graph with Similarity**: See semantic similarity as golden edges (not just wiki/markdown links)
@@ -343,28 +350,29 @@ graph TD
 
 ## Features
 
-| Feature             | Description                                                                    |
-| :------------------ | :----------------------------------------------------------------------------- |
-| **Hybrid Search**   | BM25 + vector + RRF fusion + cross-encoder reranking                           |
-| **Document Editor** | Create, edit, delete docs with live markdown preview                           |
-| **Web UI**          | Visual dashboard for search, browse, edit, and AI Q&A                          |
-| **REST API**        | HTTP API for custom tools and integrations                                     |
-| **Multi-Format**    | Markdown, PDF, DOCX, XLSX, PPTX, plain text                                    |
-| **Local LLM**       | AI answers via llama.cpp, no API keys                                          |
-| **Privacy First**   | 100% offline, zero telemetry, your data stays yours                            |
-| **MCP Server**      | Works with Claude Desktop, Cursor, Zed, + 8 more                               |
-| **Collections**     | Organize sources with patterns, excludes, contexts                             |
-| **Tag Filtering**   | Frontmatter tags with hierarchical paths, filter via `--tags-any`/`--tags-all` |
-| **Note Linking**    | Wiki links, backlinks, related notes, cross-collection navigation              |
-| **Multilingual**    | 30+ languages, auto-detection, cross-lingual search                            |
-| **Incremental**     | SHA-256 tracking, only changed files re-indexed                                |
-| **Keyboard First**  | ⌘N capture, ⌘K search, ⌘/ shortcuts, ⌘S save                                   |
+| Feature              | Description                                                                    |
+| :------------------- | :----------------------------------------------------------------------------- |
+| **Hybrid Search**    | BM25 + vector + RRF fusion + cross-encoder reranking                           |
+| **Document Editor**  | Create, edit, delete docs with live markdown preview                           |
+| **Web UI**           | Visual dashboard for search, browse, edit, and AI Q&A                          |
+| **REST API**         | HTTP API for custom tools and integrations                                     |
+| **Multi-Format**     | Markdown, PDF, DOCX, XLSX, PPTX, plain text                                    |
+| **Local LLM**        | AI answers via llama.cpp, no API keys                                          |
+| **Remote Inference** | Offload to GPU servers via HTTP (llama-server, Ollama, LocalAI)                |
+| **Privacy First**    | 100% offline, zero telemetry, your data stays yours                            |
+| **MCP Server**       | Works with Claude Desktop, Cursor, Zed, + 8 more                               |
+| **Collections**      | Organize sources with patterns, excludes, contexts                             |
+| **Tag Filtering**    | Frontmatter tags with hierarchical paths, filter via `--tags-any`/`--tags-all` |
+| **Note Linking**     | Wiki links, backlinks, related notes, cross-collection navigation              |
+| **Multilingual**     | 30+ languages, auto-detection, cross-lingual search                            |
+| **Incremental**      | SHA-256 tracking, only changed files re-indexed                                |
+| **Keyboard First**   | ⌘N capture, ⌘K search, ⌘/ shortcuts, ⌘S save                                   |
 
 ---
 
 ## Local Models
 
-Models auto-download on first use to `~/.cache/gno/models/`.
+Models auto-download on first use to `~/.cache/gno/models/`. Alternatively, offload to a GPU server on your network using HTTP backends.
 
 | Model               | Purpose                               | Size         |
 | :------------------ | :------------------------------------ | :----------- |
@@ -384,6 +392,24 @@ Models auto-download on first use to `~/.cache/gno/models/`.
 gno models use slim
 gno models pull --all  # Optional: pre-download models (auto-downloads on first use)
 ```
+
+### HTTP Backends (Remote GPU)
+
+Offload inference to a GPU server on your network:
+
+```yaml
+# ~/.config/gno/config.yaml
+models:
+  activePreset: remote-gpu
+  presets:
+    - id: remote-gpu
+      name: Remote GPU Server
+      embed: "http://192.168.1.100:8081/v1/embeddings#bge-m3"
+      rerank: "http://192.168.1.100:8082/v1/completions#reranker"
+      gen: "http://192.168.1.100:8083/v1/chat/completions#qwen3-4b"
+```
+
+Works with llama-server, Ollama, LocalAI, vLLM, or any OpenAI-compatible server.
 
 > **Configuration**: [Model Setup](https://gno.sh/docs/CONFIGURATION/)
 

@@ -18,10 +18,11 @@
 - slug: local-llm
   title: Local LLM Answers
   headline: AI Answers Without the Cloud
-  description: Get cited, grounded answers from your own documents using local language models. GNO runs everything on your machine - no API keys, no data sharing, no subscriptions.
+  description: Get cited, grounded answers from your own documents using local language models. Run locally or offload to a GPU server on your network - no cloud APIs, no data sharing.
   icon: local-llm
   benefits:
     - 100% local processing
+    - Remote GPU server support via HTTP
     - No API keys required
     - Cited answers from your docs
     - Multiple model presets (slim, balanced, quality)

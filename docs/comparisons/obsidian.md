@@ -14,21 +14,22 @@ A comparison of GNO with Obsidian's built-in search.
 
 ## Feature Comparison
 
-| Feature                | GNO                          | Obsidian Search   |
-| ---------------------- | ---------------------------- | ----------------- |
-| **Semantic Search**    | ✓ Vector + rerank            | Plugin-dependent  |
-| **File Formats**       | MD, PDF, DOCX, etc.          | Markdown only     |
-| **AI Integration**     | MCP, Skills, RAG             | Plugin-dependent  |
-| **External Access**    | CLI, MCP server              | Obsidian app only |
-| **Works With**         | Any folder structure         | Obsidian vaults   |
-| **Graph View**         | ✓ With similarity edges      | ✓ Links only      |
-| **Backlinks**          | ✓ CLI + Web UI               | ✓                 |
-| **Similar Notes**      | ✓ Vector similarity          | Plugin-dependent  |
-| **Graph + Similarity** | ✓ Visual similarity clusters | ✗                 |
-| **Note Editing**       | ✓ `gno serve`                | ✓                 |
-| **Plugins**            | MCP ecosystem                | Obsidian plugins  |
-| **REST API**           | ✓ `gno serve`                | ✗                 |
-| **Web UI**             | ✓ `gno serve`                | ✓ (Obsidian app)  |
+| Feature                | GNO                          | Obsidian Search      |
+| ---------------------- | ---------------------------- | -------------------- |
+| **Semantic Search**    | ✓ Vector + rerank            | Plugin-dependent     |
+| **File Formats**       | MD, PDF, DOCX, etc.          | Markdown only        |
+| **AI Integration**     | MCP, Skills, RAG             | Plugin-dependent     |
+| **Remote Inference**   | ✓ Native HTTP config         | ✓ Plugins + CORS cfg |
+| **External Access**    | CLI, MCP server              | Obsidian app only    |
+| **Works With**         | Any folder structure         | Obsidian vaults      |
+| **Graph View**         | ✓ With similarity edges      | ✓ Links only         |
+| **Backlinks**          | ✓ CLI + Web UI               | ✓                    |
+| **Similar Notes**      | ✓ Vector similarity          | Plugin-dependent     |
+| **Graph + Similarity** | ✓ Visual similarity clusters | ✗                    |
+| **Note Editing**       | ✓ `gno serve`                | ✓                    |
+| **Plugins**            | MCP ecosystem                | Obsidian plugins     |
+| **REST API**           | ✓ `gno serve`                | ✗                    |
+| **Web UI**             | ✓ `gno serve`                | ✓ (Obsidian app)     |
 
 ## Complementary Workflow
 

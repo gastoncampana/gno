@@ -14,18 +14,19 @@ Elasticsearch is an enterprise-grade distributed search engine. GNO is a local-f
 
 ## Feature Comparison
 
-| Feature            | GNO                           | Elasticsearch              |
-| ------------------ | ----------------------------- | -------------------------- |
-| **Deployment**     | Local CLI, zero config        | Server, cluster management |
-| **Privacy**        | 100% local, offline           | Network service            |
-| **Setup Time**     | `bun install -g @gmickel/gno` | Hours/days                 |
-| **Vector Search**  | Built-in (sqlite-vec)         | Plugin or version 8+       |
-| **AI Answers**     | ✓ Local LLM integration       | ✗ (needs external LLM)     |
-| **Resource Usage** | ~500MB RAM                    | GB+ RAM                    |
-| **Scaling**        | Single machine                | Distributed clusters       |
-| **Cost**           | Free                          | License fees at scale      |
-| **Query DSL**      | Simple CLI flags              | Complex JSON DSL           |
-| **Aggregations**   | Basic                         | Powerful analytics         |
+| Feature              | GNO                           | Elasticsearch              |
+| -------------------- | ----------------------------- | -------------------------- |
+| **Deployment**       | Local CLI, zero config        | Server, cluster management |
+| **Privacy**          | 100% local, offline           | Network service            |
+| **Setup Time**       | `bun install -g @gmickel/gno` | Hours/days                 |
+| **Vector Search**    | Built-in (sqlite-vec)         | Plugin or version 8+       |
+| **AI Answers**       | ✓ Local LLM integration       | ✗ (needs external LLM)     |
+| **Remote Inference** | ✓ Simple URI config           | ✓ Complex inference API    |
+| **Resource Usage**   | ~500MB RAM                    | GB+ RAM                    |
+| **Scaling**          | Single machine                | Distributed clusters       |
+| **Cost**             | Free                          | License fees at scale      |
+| **Query DSL**        | Simple CLI flags              | Complex JSON DSL           |
+| **Aggregations**     | Basic                         | Powerful analytics         |
 
 | **REST API** | ✓ `gno serve` | ✓ Native |
 | **Web UI** | ✓ `gno serve` | ✓ Kibana |

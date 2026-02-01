@@ -26,25 +26,26 @@ qmd init && qmd index
 
 ## Feature Comparison
 
-| Feature                 | GNO                            | QMD                  |
-| ----------------------- | ------------------------------ | -------------------- |
-| **File Formats**        | MD, PDF, DOCX, XLSX, PPTX, TXT | Markdown only        |
-| **Search Modes**        | BM25, Vector, Hybrid           | BM25, Vector, Hybrid |
-| **Query Expansion**     | ✓ LLM-powered                  | ✓ LLM-powered        |
-| **Reranking**           | ✓ Cross-encoder                | ✓ Cross-encoder      |
-| **HyDE**                | ✓                              | ✓                    |
-| **AI Answers (RAG)**    | ✓ `gno ask --answer`           | ✗                    |
-| **Web UI**              | ✓ `gno serve`                  | ✗                    |
-| **REST API**            | ✓ `gno serve`                  | ✗                    |
-| **Languages**           | 30+ (auto-detect)              | English-focused      |
-| **MCP Install CLI**     | ✓ 10+ targets                  | ✗ Manual config      |
-| **Skills**              | ✓ Claude Code, Codex, OpenCode | ✗                    |
-| **Model Presets**       | slim/balanced/quality          | Single config        |
-| **Search Depth**        | fast/balanced/thorough         | ✗                    |
-| **Incremental Index**   | ✓ SHA-256 tracking             | ✓                    |
-| **Collection Contexts** | ✓ Semantic hints               | ✓                    |
-| **Output Formats**      | JSON, CSV, MD, XML, files      | JSON, CSV, MD, XML   |
-| **Tab Completion**      | ✓ bash/zsh/fish                | ✗                    |
+| Feature                 | GNO                            | QMD                   |
+| ----------------------- | ------------------------------ | --------------------- |
+| **File Formats**        | MD, PDF, DOCX, XLSX, PPTX, TXT | Markdown only         |
+| **Search Modes**        | BM25, Vector, Hybrid           | BM25, Vector, Hybrid  |
+| **Query Expansion**     | ✓ LLM-powered                  | ✓ LLM-powered         |
+| **Reranking**           | ✓ Cross-encoder                | ✓ Cross-encoder       |
+| **HyDE**                | ✓                              | ✓                     |
+| **Remote Inference**    | ✓ Native HTTP backends         | ✗ Local or cloud only |
+| **AI Answers (RAG)**    | ✓ `gno ask --answer`           | ✗                     |
+| **Web UI**              | ✓ `gno serve`                  | ✗                     |
+| **REST API**            | ✓ `gno serve`                  | ✗                     |
+| **Languages**           | 30+ (auto-detect)              | English-focused       |
+| **MCP Install CLI**     | ✓ 10+ targets                  | ✗ Manual config       |
+| **Skills**              | ✓ Claude Code, Codex, OpenCode | ✗                     |
+| **Model Presets**       | slim/balanced/quality          | Single config         |
+| **Search Depth**        | fast/balanced/thorough         | ✗                     |
+| **Incremental Index**   | ✓ SHA-256 tracking             | ✓                     |
+| **Collection Contexts** | ✓ Semantic hints               | ✓                     |
+| **Output Formats**      | JSON, CSV, MD, XML, files      | JSON, CSV, MD, XML    |
+| **Tab Completion**      | ✓ bash/zsh/fish                | ✗                     |
 
 ## Key Differentiators
 

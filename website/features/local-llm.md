@@ -51,11 +51,32 @@ gno models use slim
 gno models pull
 ```
 
+### Remote GPU Server Support
+
+Run on lightweight machines by offloading inference to a GPU server on your network:
+
+```yaml
+# ~/.config/gno/config.yaml
+models:
+  activePreset: remote-gpu
+  presets:
+    - id: remote-gpu
+      name: Remote GPU Server
+      embed: "http://192.168.1.100:8081/v1/embeddings#bge-m3"
+      rerank: "http://192.168.1.100:8082/v1/completions#reranker"
+      gen: "http://192.168.1.100:8083/v1/chat/completions#qwen3-4b"
+```
+
+Works with any OpenAI-compatible server (llama-server, Ollama, LocalAI, vLLM). No CORS configuration needed—just point to your server.
+
+[Configuration guide →](/docs/CONFIGURATION/#http-endpoints)
+
 ### No Cloud Required
 
-Everything runs on your machine:
+Everything runs on your machine (or your network):
 
 - Models downloaded once, run locally
+- Optional: offload to GPU server on LAN
 - No API keys or subscriptions
 - Works completely offline
-- Your data never leaves your computer
+- Your data never leaves your network
