@@ -2,7 +2,7 @@ FROM oven/bun:1-alpine
 WORKDIR /app
 RUN apk add --no-cache sqlite git
 COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile
+RUN git init && bun install --frozen-lockfile
 COPY . .
 RUN mkdir -p /data /models
 ENV GNO_HOST=0.0.0.0
