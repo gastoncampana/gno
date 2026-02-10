@@ -199,7 +199,7 @@ export async function startServer(
   try {
     server = Bun.serve({
       port,
-      hostname: "127.0.0.1", // Loopback only - no LAN exposure
+      hostname: process.env.GNO_HOST || "127.0.0.1", // Loopback only - no LAN exposure
 
       // Enable development mode for HMR and console logging
       development: isDev,
