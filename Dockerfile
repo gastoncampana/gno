@@ -9,4 +9,4 @@ ENV GNO_HOST=0.0.0.0
 ENV GNO_MODEL_CACHE_DIR=/models
 ENV NODE_ENV=production
 EXPOSE 3000
-CMD ["sh", "-c", "bun run src/index.ts init /data/vault --yes 2>/dev/null; bun run src/index.ts serve --port 3000"]
+CMD ["sh", "-c", "bun run src/index.ts init /data/vault --yes --tokenizer unicode61 2>/dev/null; bun run src/index.ts serve --port 3000"]
